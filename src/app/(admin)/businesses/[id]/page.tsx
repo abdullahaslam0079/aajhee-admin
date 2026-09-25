@@ -7,10 +7,20 @@ import { Badge, Button, ConfirmDialog, Cover, Empty, ErrorBox, PageHeader, Skele
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
-import { branchAddress, compact } from "@/lib/format";
+import { branchAddress } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
-import type { AdminBranch, AdminBusiness, AdminOffer } from "@/lib/types";
+import type { AdminBranch, AdminBusiness, Paginated } from "@/lib/types";
+
+type Listing = {
+  id: number;
+  name: string;
+  base_price: string;
+  effective_price?: string;
+  has_discount?: boolean;
+  is_enabled?: boolean;
+  category_name?: string;
+};
 
 export default function BusinessDetailPage({ params }: PageProps<"/businesses/[id]">) {
   const { id } = use(params);
@@ -19,7 +29,7 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
   const router = useRouter();
   const [business, setBusiness] = useState<AdminBusiness | null>(null);
   const [branches, setBranches] = useState<AdminBranch[]>([]);
-  const [offers, setOffers] = useState<AdminOffer[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [error, setError] = useState("");
   const [confirm, setConfirm] = useState(false);
 
@@ -30,15 +40,15 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
         auth: true,
         query: { page_size: 100 },
       }),
-      api<{ results?: AdminOffer[] } | AdminOffer[]>("/api/admin/offers", {
+      api<Paginated<Listing> | Listing[]>("/api/admin/products", {
         auth: true,
         query: { business_id: id, page_size: 100 },
       }),
     ])
-      .then(([biz, branchData, offerData]) => {
+      .then(([biz, branchData, productData]) => {
         setBusiness(biz);
         setBranches(pageResults(branchData));
-        setOffers(pageResults(offerData));
+        setListings(pageResults(productData as Paginated<Listing>) || (Array.isArray(productData) ? productData : []));
       })
       .catch((err) => setError(errorMessage(err, t("businesses.load_error"))));
   }, [id, t]);
@@ -107,11 +117,9 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
           </div>
         </div>
       </div>
-      <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-8 grid gap-3 sm:grid-cols-2">
         <StatCard label={t("businesses.branches")} value={business.branch_count ?? branches.length} />
-        <StatCard label={t("businesses.offers")} value={business.offer_count ?? offers.length} />
-        <StatCard label={t("businesses.scans")} value={compact(business.scan_count)} />
-        <StatCard label={t("businesses.redemptions")} value={compact(business.redemption_count)} />
+        <StatCard label="Listings" value={listings.length} />
       </div>
 
       <div className="mb-3 flex items-center justify-between">
@@ -139,24 +147,31 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
       )}
 
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t("businesses.offers_title")}</h2>
-        <Link href={`/offers/new?businessId=${id}`}>
-          <Button type="button" variant="ghost">{t("offers.add")}</Button>
+        <h2 className="text-lg font-semibold">Listings</h2>
+        <Link href={`/products/new?businessId=${id}`}>
+          <Button type="button" variant="ghost">Create listing</Button>
         </Link>
       </div>
-      {offers.length === 0 ? (
-        <Empty title={t("offers.empty_title")} body={t("offers.empty_subtitle_for_business")} />
+      {listings.length === 0 ? (
+        <Empty title="No listings yet" body="Create a product listing with photos and a price for this business." />
       ) : (
         <div className="card divide-y divide-line">
-          {offers.map((offer) => (
-            <Link key={offer.id} href={`/offers/${offer.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-paper">
-              <span className="font-medium">{offer.title}</span>
-              <Badge tone={offer.review_status === "pending" ? "warning" : offer.is_enabled === false ? "warning" : "success"}>
-                {offer.review_status === "pending"
-                  ? t("offers.status_pending")
-                  : offer.is_enabled === false
-                    ? t("offers.status_paused")
-                    : t("offers.status_active")}
+          {listings.map((item) => (
+            <Link
+              key={item.id}
+              href={`/products/${item.id}/edit`}
+              className="flex items-center justify-between px-4 py-3 hover:bg-paper"
+            >
+              <div>
+                <span className="font-medium">{item.name}</span>
+                <p className="text-sm text-muted">
+                  {item.category_name}
+                  {item.category_name ? " · " : ""}
+                  {item.has_discount ? `${item.effective_price} (was ${item.base_price})` : item.base_price}
+                </p>
+              </div>
+              <Badge tone={item.is_enabled === false ? "warning" : "success"}>
+                {item.is_enabled === false ? "Off" : "Active"}
               </Badge>
             </Link>
           ))}

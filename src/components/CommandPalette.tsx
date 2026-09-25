@@ -5,23 +5,27 @@ import { useRouter } from "next/navigation";
 import { api, pageResults } from "@/lib/api";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
-import type { AdminBusiness, AdminOffer, AdminUser, Paginated } from "@/lib/types";
+import type { AdminBusiness, AdminUser, Paginated } from "@/lib/types";
 
 type Hit = { href: string; title: string; subtitle?: string; group: string };
+
+type ListingHit = {
+  id: number;
+  name: string;
+  business_name?: string;
+};
 
 const PAGES = [
   { href: "/dashboard", key: "admin.nav_dashboard" },
   { href: "/businesses", key: "admin.nav_businesses" },
-  { href: "/products", key: "Products" },
+  { href: "/products", key: "Listings" },
   { href: "/orders", key: "Orders" },
-  { href: "/offers", key: "admin.nav_offers" },
-  { href: "/offers?review=pending", key: "offers.filter_review" },
   { href: "/users", key: "admin.nav_users" },
   { href: "/categories", key: "admin.nav_categories" },
   { href: "/categories/tree", key: "Category tree" },
   { href: "/analytics", key: "admin.nav_analytics" },
   { href: "/businesses/new", key: "admin.new_business" },
-  { href: "/offers/new", key: "admin.new_offer" },
+  { href: "/products/new", key: "Create listing" },
 ] as const;
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -39,10 +43,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     let cancelled = false;
     Promise.all([
       api<Paginated<AdminBusiness>>("/api/admin/businesses", { auth: true, query: { search, page_size: 5 } }),
-      api<Paginated<AdminOffer>>("/api/admin/offers", { auth: true, query: { search, page_size: 5 } }),
+      api<Paginated<ListingHit>>("/api/admin/products", { auth: true, query: { search, page_size: 5 } }),
       api<Paginated<AdminUser>>("/api/admin/users", { auth: true, query: { search, page_size: 5 } }),
     ])
-      .then(([biz, offers, users]) => {
+      .then(([biz, listings, users]) => {
         if (cancelled) return;
         const hits: Hit[] = [
           ...pageResults(biz).map((item) => ({
@@ -51,11 +55,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             subtitle: item.category_name || item.email,
             group: t("admin.nav_businesses"),
           })),
-          ...pageResults(offers).map((item) => ({
-            href: `/offers/${item.id}`,
-            title: item.title,
+          ...pageResults(listings).map((item) => ({
+            href: `/products/${item.id}/edit`,
+            title: item.name,
             subtitle: item.business_name,
-            group: t("admin.nav_offers"),
+            group: "Listings",
           })),
           ...pageResults(users).map((item) => ({
             href: "/users",
@@ -76,9 +80,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const pages = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return PAGES.filter((page) => !needle || t(page.key).toLowerCase().includes(needle)).map((page) => ({
+    return PAGES.filter((page) => {
+      const label = page.key.startsWith("admin.") ? t(page.key) : page.key;
+      return !needle || label.toLowerCase().includes(needle);
+    }).map((page) => ({
       href: page.href,
-      title: t(page.key),
+      title: page.key.startsWith("admin.") ? t(page.key) : page.key,
       group: t("common.command_pages"),
     }));
   }, [query, t]);

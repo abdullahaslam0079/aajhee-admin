@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Empty, ErrorBox, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Empty, ErrorBox, PageHeader, Skeleton } from "@/components/ui";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import type { Paginated } from "@/lib/types";
@@ -16,6 +17,7 @@ type Product = {
   has_discount?: boolean;
   effective_price?: string;
   is_enabled?: boolean;
+  image_url?: string | null;
 };
 
 export default function ProductsPage() {
@@ -27,7 +29,7 @@ export default function ProductsPage() {
     setLoading(true);
     api<Paginated<Product> | Product[]>("/api/admin/products", { auth: true })
       .then((data) => setItems(pageResults(data as Paginated<Product>) || (Array.isArray(data) ? data : [])))
-      .catch((err) => setError(errorMessage(err, "Failed to load products")))
+      .catch((err) => setError(errorMessage(err, "Failed to load listings")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,13 +39,21 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <PageHeader title="Products" subtitle="Catalog migrated from offers" />
+      <PageHeader
+        title="Listings"
+        subtitle="Product catalog for ordering — photos, price, and optional discounts"
+        actions={
+          <Link href="/products/new">
+            <Button type="button">Create listing</Button>
+          </Link>
+        }
+      />
       {loading ? (
         <Skeleton className="h-40 w-full" />
       ) : error ? (
         <ErrorBox message={error} onRetry={load} />
       ) : items.length === 0 ? (
-        <Empty title="No products yet" />
+        <Empty title="No listings yet" body="Create a product listing with photos and a price." />
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--border)]">
           <table className="w-full text-left text-sm">
@@ -54,6 +64,7 @@ export default function ProductsPage() {
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -68,6 +79,11 @@ export default function ProductsPage() {
                       : p.base_price}
                   </td>
                   <td className="px-4 py-3">{p.is_enabled ? "Active" : "Off"}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/products/${p.id}/edit`} className="font-semibold text-deal">
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

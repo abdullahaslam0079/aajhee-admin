@@ -12,7 +12,6 @@ import {
   Search,
   Store,
   Tag,
-  TicketPercent,
   Users,
   X,
 } from "lucide-react";
@@ -25,15 +24,13 @@ import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useToast } from "@/lib/toast";
 import { useAuth } from "@/lib/useAuth";
-import type { AdminOffer, Paginated } from "@/lib/types";
 import { Button } from "./ui";
 
 const NAV = [
   { href: "/dashboard", key: "admin.nav_dashboard", icon: LayoutDashboard },
   { href: "/businesses", key: "admin.nav_businesses", icon: Store },
-  { href: "/products", key: "Products", icon: Package },
+  { href: "/products", key: "Listings", icon: Package },
   { href: "/orders", key: "Orders", icon: Receipt },
-  { href: "/offers", key: "admin.nav_offers", icon: TicketPercent },
   { href: "/users", key: "admin.nav_users", icon: Users },
   { href: "/categories", key: "admin.nav_categories", icon: Tag },
   { href: "/categories/tree", key: "Category tree", icon: Tag },
@@ -49,7 +46,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
   const warned = useRef(false);
 
@@ -87,15 +83,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [t, toast]);
 
-  useEffect(() => {
-    api<Paginated<AdminOffer>>("/api/admin/offers", {
-      auth: true,
-      query: { review_status: "pending", page_size: 1 },
-    })
-      .then((data) => setPendingCount(data.count ?? 0))
-      .catch(() => undefined);
-  }, [pathname]);
-
   async function logout() {
     try {
       await api("/api/admin/auth/logout", { method: "POST", auth: true });
@@ -126,11 +113,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className="flex-1">
               {item.key.startsWith("admin.") ? t(item.key) : item.key}
             </span>
-            {item.href === "/offers" && pendingCount > 0 ? (
-              <span className="rounded-full bg-deal px-2 py-0.5 text-[10px] font-bold text-white">
-                {pendingCount}
-              </span>
-            ) : null}
           </Link>
         );
       })}
