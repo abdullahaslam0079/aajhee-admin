@@ -11,7 +11,6 @@ import { branchAddress, compact } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import type { AdminBranch, AdminBusiness, AdminOffer } from "@/lib/types";
-import { DealSourcesPanel } from "@/components/DealSourcesPanel";
 
 export default function BusinessDetailPage({ params }: PageProps<"/businesses/[id]">) {
   const { id } = use(params);
@@ -87,7 +86,25 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
         <Cover src={business.logo_url} label={business.name} className="h-16 w-16" />
         <div>
           <p className="text-sm text-muted">{t("businesses.owner")}: {business.owner_email || business.email}</p>
-          {business.owner_is_active === false ? <Badge tone="danger">{t("businesses.owner_disabled")}</Badge> : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {business.presence_mode ? (
+              <Badge tone="deal">
+                {business.presence_mode === "online_only"
+                  ? t("businesses.presence_online")
+                  : business.presence_mode === "instore_only"
+                    ? t("businesses.presence_instore")
+                    : t("businesses.presence_hybrid")}
+              </Badge>
+            ) : null}
+            {business.presence_mode !== "instore_only" && business.online_coverage ? (
+              <Badge>
+                {business.online_coverage === "country"
+                  ? t("businesses.coverage_country")
+                  : t("businesses.coverage_city")}
+              </Badge>
+            ) : null}
+            {business.owner_is_active === false ? <Badge tone="danger">{t("businesses.owner_disabled")}</Badge> : null}
+          </div>
         </div>
       </div>
       <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -120,8 +137,6 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
           ))}
         </div>
       )}
-
-      <DealSourcesPanel businessId={id} />
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t("businesses.offers_title")}</h2>

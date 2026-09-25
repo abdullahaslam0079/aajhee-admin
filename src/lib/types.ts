@@ -26,6 +26,9 @@ export type Category = {
   business_count?: number;
 };
 
+export type PresenceMode = "online_only" | "instore_only" | "hybrid";
+export type OnlineCoverage = "city" | "country";
+
 export type AdminBusiness = {
   id: number;
   name: string;
@@ -33,6 +36,8 @@ export type AdminBusiness = {
   logo_url?: string | null;
   category_id?: number;
   category_name?: string;
+  presence_mode?: PresenceMode | string;
+  online_coverage?: OnlineCoverage | string;
   owner_id?: number;
   owner_email?: string;
   owner_is_active?: boolean;
@@ -57,6 +62,31 @@ export type AdminBranch = {
   longitude: number | string;
   formattedAddress?: string;
   formatted_address?: string;
+};
+
+export type BranchContact = {
+  id?: number;
+  contact_type: "whatsapp" | "phone" | "email" | string;
+  value: string;
+  is_primary?: boolean;
+};
+
+export type BranchFulfillmentSettings = {
+  pickup_enabled: boolean;
+  pickup_radius_km: string | number;
+  local_same_day_enabled: boolean;
+  local_delivery_fee: string | number;
+  local_max_delivery_hours: number;
+  nationwide_enabled: boolean;
+  nationwide_delivery_fee: string | number;
+  nationwide_max_delivery_hours: number;
+  customer_cancel_policy: "disabled" | "window_minutes" | string;
+  customer_cancel_window_minutes: number;
+  bank_transfer_enabled: boolean;
+  bank_transfer_instructions: string;
+  cash_on_pickup_enabled: boolean;
+  cash_on_delivery_enabled: boolean;
+  updated_at?: string;
 };
 
 export type OfferType = "item" | "percentage_bill" | "deal";

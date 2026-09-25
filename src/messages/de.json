@@ -169,7 +169,15 @@
     "sources_title": "Angebotsquellen",
     "owner": "Inhaber",
     "views": "Aufrufe",
-    "likes": "Likes"
+    "likes": "Likes",
+    "presence_mode": "Verfügbarkeit",
+    "presence_hint": "Ob dieses Geschäft online, vor Ort oder beides verkauft.",
+    "presence_online": "Nur online",
+    "presence_instore": "Nur vor Ort",
+    "presence_hybrid": "Online und vor Ort",
+    "online_coverage": "Online-Abdeckung",
+    "coverage_city": "Stadt",
+    "coverage_country": "Ganzes Land"
   },
   "sources": {
     "title": "Angebotsquellen",
@@ -235,14 +243,17 @@
     "scans": "{count} Scans",
     "users": "{count} Nutzer",
     "empty_title": "Noch keine Filialen",
-    "empty_subtitle": "Fügen Sie eine Filiale hinzu, damit Angebote einem Standort zugeordnet werden können.",
+    "empty_subtitle": "Fügen Sie eine Filiale mit Kartenstandort hinzu, damit Produkte in der Nähe oder zur Abholung angezeigt werden.",
     "load_error": "Filialen konnten nicht geladen werden.",
     "saved": "Filiale erfolgreich gespeichert.",
     "save_error": "Filiale konnte nicht gespeichert werden.",
     "deleted": "Filiale gelöscht.",
     "delete_error": "Filiale konnte nicht gelöscht werden.",
     "delete_title": "Filiale löschen",
-    "delete_message": "Möchten Sie diese Filiale wirklich löschen? Verknüpfte Angebote werden aktualisiert."
+    "delete_message": "Möchten Sie diese Filiale wirklich löschen? Verknüpfte Angebote werden aktualisiert.",
+    "map": "Kartenstandort",
+    "coords_readonly": "Wird über Karte oder Adresssuche gesetzt",
+    "edit_subtitle": "Adresse auf der Karte setzen, dann Kontakte und Lieferung konfigurieren."
   },
   "items": {
     "title": "Menüartikel",

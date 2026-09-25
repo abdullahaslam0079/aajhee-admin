@@ -6,8 +6,26 @@ import { api, pageResults } from "@/lib/api";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
-import type { AdminBusiness, Category } from "@/lib/types";
+import type { AdminBusiness, Category, OnlineCoverage, PresenceMode } from "@/lib/types";
 import { Button, Cover, ErrorBox, Field, inputClass } from "./ui";
+
+const PRESENCE_OPTIONS: Array<{ value: PresenceMode; label: string; hint: string }> = [
+  {
+    value: "online_only",
+    label: "Online only",
+    hint: "Visible for online shopping; no in-store requirement.",
+  },
+  {
+    value: "instore_only",
+    label: "In-store only",
+    hint: "Shown to nearby customers for physical visits.",
+  },
+  {
+    value: "hybrid",
+    label: "Online and in-store",
+    hint: "Both online discovery and local store presence.",
+  },
+];
 
 export function BusinessForm({ business }: { business?: AdminBusiness }) {
   const { t } = useI18n();
@@ -26,6 +44,8 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
     email: business?.email || "",
     password: "",
     password_confirm: "",
+    presence_mode: (business?.presence_mode || "hybrid") as PresenceMode,
+    online_coverage: (business?.online_coverage || "city") as OnlineCoverage,
   });
 
   useEffect(() => {
@@ -52,6 +72,8 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       const data = new FormData();
       data.set("name", form.name);
       data.set("category_id", form.category_id);
+      data.set("presence_mode", form.presence_mode);
+      data.set("online_coverage", form.online_coverage);
       if (!editing) {
         data.set("email", form.email);
         data.set("password", form.password);
@@ -79,6 +101,8 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       setSaving(false);
     }
   }
+
+  const showCoverage = form.presence_mode !== "instore_only";
 
   return (
     <form onSubmit={submit} className="card mx-auto max-w-xl space-y-4 p-6">
@@ -108,6 +132,45 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
           ))}
         </select>
       </Field>
+
+      <Field label={t("businesses.presence_mode")} error={errors.presence_mode} hint={t("businesses.presence_hint")}>
+        <div className="space-y-2">
+          {PRESENCE_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className="flex cursor-pointer gap-3 rounded-xl border border-line px-3 py-2 hover:bg-paper"
+            >
+              <input
+                type="radio"
+                name="presence_mode"
+                className="mt-1"
+                checked={form.presence_mode === option.value}
+                onChange={() => setForm({ ...form, presence_mode: option.value })}
+              />
+              <span>
+                <span className="block font-medium">{option.label}</span>
+                <span className="block text-xs text-muted">{option.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </Field>
+
+      {showCoverage ? (
+        <Field label={t("businesses.online_coverage")} error={errors.online_coverage}>
+          <select
+            className={inputClass}
+            value={form.online_coverage}
+            onChange={(e) =>
+              setForm({ ...form, online_coverage: e.target.value as OnlineCoverage })
+            }
+          >
+            <option value="city">City</option>
+            <option value="country">Whole country</option>
+          </select>
+        </Field>
+      ) : null}
+
       <Field label={t("businesses.email")} error={errors.email} hint={editing ? t("businesses.owner") : undefined}>
         <input className={inputClass} type="email" value={form.email} disabled={editing} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
       </Field>

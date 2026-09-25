@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BranchCommercePanel } from "@/components/BranchCommercePanel";
 import { BranchForm } from "@/components/BranchForm";
 import { BackLink, Button, ConfirmDialog, ErrorBox, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -42,6 +43,7 @@ export default function EditBranchPage({
       <BackLink href={`/businesses/${id}`} label={t("common.back")} />
       <PageHeader
         title={t("branches.edit")}
+        subtitle={t("branches.edit_subtitle")}
         actions={
           <Button type="button" variant="danger" onClick={() => setConfirm(true)}>
             {t("common.delete")}
@@ -49,7 +51,14 @@ export default function EditBranchPage({
         }
       />
       {error ? <ErrorBox message={error} /> : null}
-      {branch ? <BranchForm businessId={id} branch={branch} /> : <Skeleton className="h-80" />}
+      {branch ? (
+        <>
+          <BranchForm businessId={id} branch={branch} />
+          <BranchCommercePanel branchId={branch.id} />
+        </>
+      ) : (
+        <Skeleton className="h-80" />
+      )}
       {confirm ? (
         <ConfirmDialog
           title={t("branches.delete_title")}
