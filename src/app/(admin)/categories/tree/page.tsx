@@ -101,32 +101,34 @@ export default function CategoryTreePage() {
         </ul>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New category">
-        <div className="grid gap-3">
-          <Field label="Name">
-            <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-          <Field label="Parent (optional)">
-            <select
-              className={inputClass}
-              value={parentId}
-              onChange={(e) =>
-                setParentId(e.target.value ? Number(e.target.value) : "")
-              }
-            >
-              <option value="">Root</option>
-              {flat.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {"—".repeat(n.depth)} {n.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Button onClick={create} disabled={!name.trim()}>
-            Create
-          </Button>
-        </div>
-      </Modal>
+      {open ? (
+        <Modal onClose={() => setOpen(false)} title="New category">
+          <div className="grid gap-3">
+            <Field label="Name">
+              <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Parent (optional)">
+              <select
+                className={inputClass}
+                value={parentId}
+                onChange={(e) =>
+                  setParentId(e.target.value ? Number(e.target.value) : "")
+                }
+              >
+                <option value="">Root</option>
+                {flat.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {"—".repeat(n.depth)} {n.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Button onClick={create} disabled={!name.trim()}>
+              Create
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

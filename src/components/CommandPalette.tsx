@@ -12,10 +12,13 @@ type Hit = { href: string; title: string; subtitle?: string; group: string };
 const PAGES = [
   { href: "/dashboard", key: "admin.nav_dashboard" },
   { href: "/businesses", key: "admin.nav_businesses" },
+  { href: "/products", key: "Products" },
+  { href: "/orders", key: "Orders" },
   { href: "/offers", key: "admin.nav_offers" },
   { href: "/offers?review=pending", key: "offers.filter_review" },
   { href: "/users", key: "admin.nav_users" },
   { href: "/categories", key: "admin.nav_categories" },
+  { href: "/categories/tree", key: "Category tree" },
   { href: "/analytics", key: "admin.nav_analytics" },
   { href: "/businesses/new", key: "admin.new_business" },
   { href: "/offers/new", key: "admin.new_offer" },
