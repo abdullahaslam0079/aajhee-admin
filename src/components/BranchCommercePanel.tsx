@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 import type { BranchContact, BranchFulfillmentSettings } from "@/lib/types";
@@ -46,6 +46,7 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     Promise.all([
       api<BranchContact[]>(`/api/admin/branches/${branchId}/contacts`, { auth: true }),
       api<BranchFulfillmentSettings>(`/api/admin/branches/${branchId}/fulfillment`, {
@@ -53,10 +54,16 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
       }),
     ])
       .then(([contactData, fulfillmentData]) => {
-        setContacts(contactData.length ? contactData : [emptyContact()]);
-        setFulfillment({ ...defaultFulfillment(), ...fulfillmentData });
+        setContacts(Array.isArray(contactData) && contactData.length ? contactData : [emptyContact()]);
+        setFulfillment({ ...defaultFulfillment(), ...(fulfillmentData || {}) });
       })
-      .catch((err) => setError(errorMessage(err, "Could not load branch commerce settings")))
+      .catch((err) => {
+        setError(
+          err instanceof ApiError && err.status === 404
+            ? "Branch commerce API is not live yet. Redeploy aajhee-backend on Render, then refresh this page."
+            : errorMessage(err, "Could not load branch commerce settings"),
+        );
+      })
       .finally(() => setLoading(false));
   }, [branchId]);
 
@@ -71,6 +78,11 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
           is_primary: Boolean(c.is_primary),
         }))
         .filter((c) => c.value);
+      if (!cleaned.length) {
+        setError("Add at least one contact (phone, WhatsApp, or email) before saving.");
+        setSaving(false);
+        return;
+      }
       await api(`/api/admin/branches/${branchId}/contacts`, {
         method: "PUT",
         auth: true,
@@ -79,11 +91,20 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
       await api(`/api/admin/branches/${branchId}/fulfillment`, {
         method: "PATCH",
         auth: true,
-        body: JSON.stringify(fulfillment),
+        body: JSON.stringify({
+          ...fulfillment,
+          pickup_radius_km: String(fulfillment.pickup_radius_km),
+          local_delivery_fee: String(fulfillment.local_delivery_fee),
+          nationwide_delivery_fee: String(fulfillment.nationwide_delivery_fee),
+        }),
       });
       toast.push("Contacts and delivery settings saved");
     } catch (err) {
-      setError(errorMessage(err, "Could not save commerce settings"));
+      setError(
+        err instanceof ApiError && err.status === 404
+          ? "Save failed: branch commerce API is not live yet. Redeploy aajhee-backend on Render."
+          : errorMessage(err, "Could not save commerce settings"),
+      );
     } finally {
       setSaving(false);
     }
