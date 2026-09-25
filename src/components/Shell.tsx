@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
+  Receipt,
   Search,
   Store,
   Tag,
@@ -29,9 +31,12 @@ import { Button } from "./ui";
 const NAV = [
   { href: "/dashboard", key: "admin.nav_dashboard", icon: LayoutDashboard },
   { href: "/businesses", key: "admin.nav_businesses", icon: Store },
+  { href: "/products", key: "Products", icon: Package },
+  { href: "/orders", key: "Orders", icon: Receipt },
   { href: "/offers", key: "admin.nav_offers", icon: TicketPercent },
   { href: "/users", key: "admin.nav_users", icon: Users },
   { href: "/categories", key: "admin.nav_categories", icon: Tag },
+  { href: "/categories/tree", key: "Category tree", icon: Tag },
   { href: "/analytics", key: "admin.nav_analytics", icon: BarChart3 },
 ] as const;
 
@@ -118,7 +123,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             }`}
           >
             <Icon size={18} />
-            <span className="flex-1">{t(item.key)}</span>
+            <span className="flex-1">
+              {item.key.startsWith("admin.") ? t(item.key) : item.key}
+            </span>
             {item.href === "/offers" && pendingCount > 0 ? (
               <span className="rounded-full bg-deal px-2 py-0.5 text-[10px] font-bold text-white">
                 {pendingCount}
