@@ -35,7 +35,12 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      setSession({ access: data.access, admin: data.admin, remember });
+      setSession({
+        access: data.access,
+        refresh: data.refresh,
+        admin: data.admin,
+        remember,
+      });
       router.replace("/dashboard");
     } catch (err) {
       setError(errorMessage(err, t("auth.password_required")));

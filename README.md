@@ -8,14 +8,16 @@ Staff dashboard for the Aajhee API (`https://api.aajhee.com`). This is a separat
 
 ## What it covers
 
-- **Login** — staff JWT (`is_staff`) at `POST /api/admin/auth/token`
-- **Dashboard** — platform stats, top businesses, quick actions
-- **Businesses** — create/edit/delete, logo upload, nested branches
-- **Branches** — address search via OpenStreetMap Nominatim (Germany)
-- **Offers** — create/edit/delete, URL import, gallery, schedules, QR poster
+- **Login** — staff JWT (`is_staff`) at `POST /api/admin/auth/token` (access + refresh)
+- **Dashboard** — platform stats, commerce ops shortcuts, top businesses, quick actions
+- **Businesses** — create/edit/delete, logo upload, nested branches, deal sources
+- **Branches** — address search via OpenStreetMap Nominatim (Germany), fulfillment/contacts
+- **Offers** — create/edit/delete, review queue (approve/reject/bulk), schedules, QR poster
+- **Listings** — product catalog, stock, bulk discount, gallery
+- **Orders** — status workflow, payment-proof review, CSV export, auto-refresh
 - **Users** — search, filter, activate/deactivate, edit names
-- **Categories** — create/edit/delete
-- **Analytics** — overview, timeseries chart, recent activity
+- **Categories** — flat list + hierarchical tree
+- **Analytics** — overview (incl. orders/GMV/low stock), timeseries chart, recent activity
 - English / German, light / dark / system theme
 
 ## Run locally
@@ -46,4 +48,5 @@ CORS already allows `localhost`. For a hosted admin domain, add it to `CORS_ALLO
 
 ## Auth note
 
-Admin login returns an access token only (about 60 minutes). After it expires, sign in again.
+Admin login returns access + refresh JWTs. The admin app renews the access token
+quietly before it expires; sign in again only if the refresh token is gone or revoked.

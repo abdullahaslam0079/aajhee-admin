@@ -6,7 +6,7 @@ import { BarChart } from "@/components/BarChart";
 import { Cover, ErrorBox, PageHeader, Skeleton, StatCard } from "@/components/ui";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
-import { compact } from "@/lib/format";
+import { compact, rs } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import type { AnalyticsOverview, AnalyticsTimeseries } from "@/lib/types";
 
@@ -72,10 +72,25 @@ export default function AnalyticsPage() {
             hint={t("analytics.stat_active", { count: counts.offers_active ?? 0 })}
           />
           <StatCard label={t("analytics.stat_consumers")} value={compact(counts.consumers)} />
+          <StatCard label={t("analytics.stat_orders")} value={compact(counts.orders_total)} href="/orders" />
+          <StatCard
+            label={t("analytics.stat_gmv")}
+            value={counts.order_volume != null ? rs(counts.order_volume) : "—"}
+          />
           <StatCard label={t("analytics.stat_scans")} value={compact(counts.scans)} />
           <StatCard label={t("analytics.stat_redemptions")} value={compact(counts.redemptions ?? counts.avails)} />
           <StatCard label={t("analytics.stat_offer_views")} value={compact(counts.offer_views)} />
           <StatCard label={t("analytics.stat_offer_likes")} value={compact(counts.offer_likes)} />
+          <StatCard
+            label={t("analytics.ops_pending_orders")}
+            value={compact(counts.orders_pending)}
+            href="/orders?status=pending"
+          />
+          <StatCard
+            label={t("analytics.ops_low_stock")}
+            value={compact(counts.low_stock_products)}
+            href="/products?stock=low"
+          />
         </div>
       )}
 

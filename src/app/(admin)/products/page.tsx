@@ -20,6 +20,7 @@ import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { rs } from "@/lib/format";
 import { useDebounced } from "@/lib/hooks";
+import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import type { AdminBusiness, Paginated } from "@/lib/types";
 
@@ -35,6 +36,7 @@ export default function ProductsPage() {
 }
 
 function ProductsList() {
+  const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -74,9 +76,9 @@ function ProductsList() {
         }
         setError("");
       })
-      .catch((err) => setError(errorMessage(err, "Failed to load listings")))
+      .catch((err) => setError(errorMessage(err, t("products.load_error"))))
       .finally(() => setLoading(false));
-  }, [q, enabledFilter, lowStockFilter, businessId, page]);
+  }, [q, enabledFilter, lowStockFilter, businessId, page, t]);
 
   useEffect(() => {
     load();
@@ -111,17 +113,15 @@ function ProductsList() {
   async function applyBulkDiscount(allProducts = false) {
     const percentValue = Number(bulkPercent);
     if (!Number.isFinite(percentValue) || percentValue <= 0 || percentValue > 100) {
-      setError("Enter a discount between 0.01 and 100.");
+      setError(t("products.bulk_percent_invalid"));
       return;
     }
     if (!allProducts && selected.length === 0) {
-      setError("Select at least one listing, or apply to all.");
+      setError(t("products.bulk_need_selection"));
       return;
     }
     if (allProducts && !businessId) {
-      const ok = window.confirm(
-        `Apply ${percentValue}% off to every listing on the platform? Pick a business first to limit the scope.`,
-      );
+      const ok = window.confirm(t("products.apply_all"));
       if (!ok) return;
     }
     setBulkBusy(true);
@@ -137,11 +137,11 @@ function ProductsList() {
           business_id: allProducts && businessId ? Number(businessId) : undefined,
         }),
       });
-      toast.push(`Discount applied to ${result?.updated ?? (allProducts ? "all" : selected.length)} listing(s)`);
+      toast.push(t("products.bulk_ok", { count: result?.updated ?? (allProducts ? count : selected.length) }));
       setSelected([]);
       load();
     } catch (err) {
-      setError(errorMessage(err, "Could not apply bulk discount"));
+      setError(errorMessage(err, t("products.bulk_error")));
     } finally {
       setBulkBusy(false);
     }
@@ -150,15 +150,15 @@ function ProductsList() {
   return (
     <div>
       <PageHeader
-        title="Listings"
+        title={t("products.title")}
         subtitle={
           count
-            ? `Showing ${from}–${to} of ${count} · photos, price, stock, and discounts`
-            : "Product catalog for ordering — photos, price, stock, and optional discounts"
+            ? t("products.showing", { from, to, count })
+            : t("products.subtitle")
         }
         actions={
           <Link href="/products/new">
-            <Button type="button">Create listing</Button>
+            <Button type="button">{t("products.add")}</Button>
           </Link>
         }
       />
@@ -166,7 +166,7 @@ function ProductsList() {
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           className={`${inputClass} min-w-[220px] flex-1`}
-          placeholder="Search listings or business…"
+          placeholder={t("products.search_hint")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -180,9 +180,9 @@ function ProductsList() {
             setBusinessId(e.target.value);
             setPage(1);
           }}
-          aria-label="Business"
+          aria-label={t("products.col_business")}
         >
-          <option value="">All businesses</option>
+          <option value="">{t("products.all_businesses")}</option>
           {businesses.map((biz) => (
             <option key={biz.id} value={biz.id}>
               {biz.name}
@@ -196,11 +196,11 @@ function ProductsList() {
             setEnabledFilter(e.target.value);
             setPage(1);
           }}
-          aria-label="Visibility"
+          aria-label={t("products.col_status")}
         >
-          <option value="">All visibility</option>
-          <option value="true">Active only</option>
-          <option value="false">Off only</option>
+          <option value="">{t("products.all_visibility")}</option>
+          <option value="true">{t("products.active_only")}</option>
+          <option value="false">{t("products.off_only")}</option>
         </select>
         <select
           className={`${inputClass} w-auto`}
@@ -209,10 +209,10 @@ function ProductsList() {
             setLowStockFilter(e.target.value);
             setPage(1);
           }}
-          aria-label="Stock"
+          aria-label={t("products.col_stock")}
         >
-          <option value="">All stock</option>
-          <option value="true">Low stock (≤{LOW_STOCK_THRESHOLD})</option>
+          <option value="">{t("products.all_stock")}</option>
+          <option value="true">{t("products.low_stock", { n: LOW_STOCK_THRESHOLD })}</option>
         </select>
       </div>
 
@@ -222,9 +222,9 @@ function ProductsList() {
         <div className="card mb-4 flex flex-wrap items-end gap-3 p-4">
           <label className="flex items-center gap-2 pb-2.5 text-sm font-semibold">
             <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectPage} />
-            Select page ({selected.length} selected)
+            {t("products.select_page", { n: selected.length })}
           </label>
-          <Field label="Bulk discount %">
+          <Field label={t("products.bulk_discount")}>
             <input
               className={`${inputClass} w-28`}
               type="number"
@@ -240,10 +240,10 @@ function ProductsList() {
             disabled={bulkBusy || selected.length === 0}
             onClick={() => void applyBulkDiscount(false)}
           >
-            {bulkBusy ? "Applying…" : "Apply to selected"}
+            {bulkBusy ? t("products.applying") : t("products.apply_selected")}
           </Button>
           <Button type="button" variant="ghost" disabled={bulkBusy} onClick={() => void applyBulkDiscount(true)}>
-            {businessId ? "Apply to all in business" : "Apply to all listings"}
+            {businessId ? t("products.apply_business") : t("products.apply_all")}
           </Button>
           {selected.length ? (
             <button
@@ -251,7 +251,7 @@ function ProductsList() {
               className="pb-2.5 text-xs font-semibold text-muted hover:text-ink"
               onClick={() => setSelected([])}
             >
-              Clear selection
+              {t("products.clear_selection")}
             </button>
           ) : null}
         </div>
@@ -261,12 +261,12 @@ function ProductsList() {
         <Skeleton className="h-64" />
       ) : items.length === 0 ? (
         <Empty
-          title="No listings"
-          body={hasFilters ? "No listings match these filters." : "Create a product listing with photos and a price."}
+          title={t("products.empty_title")}
+          body={hasFilters ? t("products.empty_filtered") : t("products.empty_subtitle")}
           action={
             hasFilters ? undefined : (
               <Link href="/products/new">
-                <Button type="button">Create listing</Button>
+                <Button type="button">{t("products.add")}</Button>
               </Link>
             )
           }
@@ -277,12 +277,12 @@ function ProductsList() {
             <thead>
               <tr>
                 <th className="w-8" />
-                <th>Name</th>
-                <th>Business</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Status</th>
+                <th>{t("products.col_name")}</th>
+                <th>{t("products.col_business")}</th>
+                <th>{t("products.col_category")}</th>
+                <th>{t("products.col_price")}</th>
+                <th>{t("products.col_stock")}</th>
+                <th>{t("products.col_status")}</th>
                 <th />
               </tr>
             </thead>
@@ -298,7 +298,7 @@ function ProductsList() {
                       type="checkbox"
                       checked={selected.includes(p.id)}
                       onChange={() => toggleSelect(p.id)}
-                      aria-label={`Select ${p.name}`}
+                      aria-label={p.name}
                     />
                   </td>
                   <td>
@@ -307,11 +307,13 @@ function ProductsList() {
                       <div className="min-w-0">
                         <p className="font-medium">{p.name}</p>
                         <div className="mt-0.5 flex flex-wrap gap-1">
-                          {p.has_discount ? <Badge tone="deal">On sale</Badge> : null}
-                          {p.is_available === false ? <Badge tone="warning">Unavailable</Badge> : null}
+                          {p.has_discount ? <Badge tone="deal">{t("products.on_sale")}</Badge> : null}
+                          {p.is_available === false ? <Badge tone="warning">{t("products.unavailable")}</Badge> : null}
                           {p.is_low_stock ? (
                             <Badge tone={p.stock_quantity === 0 ? "danger" : "warning"}>
-                              {p.stock_quantity === 0 ? "Out of stock" : `Low stock · ${p.stock_quantity}`}
+                              {p.stock_quantity === 0
+                                ? t("products.out_of_stock")
+                                : t("products.low_stock_badge", { n: p.stock_quantity ?? 0 })}
                             </Badge>
                           ) : null}
                         </div>
@@ -331,11 +333,11 @@ function ProductsList() {
                     )}
                   </td>
                   <td className={p.is_low_stock ? "font-semibold text-amber-700 dark:text-amber-300" : ""}>
-                    {p.stock_quantity == null ? <span className="text-muted">Unlimited</span> : p.stock_quantity}
+                    {p.stock_quantity == null ? <span className="text-muted">{t("products.unlimited")}</span> : p.stock_quantity}
                   </td>
                   <td>
                     <Badge tone={p.is_enabled === false ? "neutral" : "success"}>
-                      {p.is_enabled === false ? "Off" : "Active"}
+                      {p.is_enabled === false ? t("products.status_off") : t("products.status_active")}
                     </Badge>
                   </td>
                   <td className="text-right">
@@ -344,7 +346,7 @@ function ProductsList() {
                       className="text-sm font-semibold text-deal"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Edit
+                      {t("common.edit")}
                     </Link>
                   </td>
                 </tr>
@@ -359,9 +361,9 @@ function ProductsList() {
         pageSize={PAGE_SIZE}
         count={count}
         onPage={setPage}
-        showingLabel={`Showing ${from}–${to} of ${count}`}
-        previousLabel="Previous"
-        nextLabel="Next"
+        showingLabel={t("common.showing", { from, to, count })}
+        previousLabel={t("common.previous")}
+        nextLabel={t("common.next")}
       />
     </div>
   );

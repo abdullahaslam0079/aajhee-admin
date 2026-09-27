@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { Badge, Button, ConfirmDialog, Cover, Empty, ErrorBox, PageHeader, Skeleton, StatCard } from "@/components/ui";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { DealSourcesPanel } from "@/components/DealSourcesPanel";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { branchAddress } from "@/lib/format";
@@ -155,7 +156,7 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
       {listings.length === 0 ? (
         <Empty title="No listings yet" body="Create a product listing with photos and a price for this business." />
       ) : (
-        <div className="card divide-y divide-line">
+        <div className="card mb-8 divide-y divide-line">
           {listings.map((item) => (
             <Link
               key={item.id}
@@ -177,6 +178,10 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
           ))}
         </div>
       )}
+
+      <div className="mt-8">
+        <DealSourcesPanel businessId={Number(id)} />
+      </div>
 
       {confirm ? (
         <ConfirmDialog

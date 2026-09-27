@@ -77,7 +77,7 @@ export default function DashboardPage() {
             value={compact(counts.offers_total)}
             hint={t("dashboard.stat_active", { count: counts.offers_active ?? 0 })}
           />
-          <StatCard href="/users" label={t("dashboard.stat_consumers")} value={compact(counts.consumers)} />
+          <StatCard href="/orders" label={t("analytics.stat_orders")} value={compact(counts.orders_total)} />
           <StatCard
             href="/analytics"
             label={t("dashboard.stat_scans")}
@@ -87,6 +87,37 @@ export default function DashboardPage() {
           />
         </div>
       )}
+
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold">{t("analytics.ops_title")}</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            href="/orders?status=pending"
+            label={t("analytics.ops_pending_orders")}
+            value={compact(counts.orders_pending)}
+          />
+          <StatCard
+            href="/orders?status=payment_submitted"
+            label={t("analytics.ops_payment_review")}
+            value={compact(counts.orders_payment_submitted)}
+            hint={
+              counts.pending_payment_proofs
+                ? t("analytics.stat_pending_proofs") + `: ${counts.pending_payment_proofs}`
+                : undefined
+            }
+          />
+          <StatCard
+            href="/products?stock=low"
+            label={t("analytics.ops_low_stock")}
+            value={compact(counts.low_stock_products)}
+          />
+          <StatCard
+            href="/offers?review_status=pending"
+            label={t("offers.filter_review")}
+            value={compact(counts.offers_pending)}
+          />
+        </div>
+      </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_1fr]">
         <div className="card p-5">

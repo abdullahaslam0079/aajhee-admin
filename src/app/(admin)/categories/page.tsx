@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button, ConfirmDialog, Empty, ErrorBox, Field, Modal, PageHeader, Pagination, Skeleton, inputClass } from "@/components/ui";
 import { api, pageResults } from "@/lib/api";
@@ -79,15 +80,22 @@ export default function CategoriesPage() {
       <PageHeader
         title={t("categories.title")}
         actions={
-          <Button
-            type="button"
-            onClick={() => {
-              setEditing("new");
-              setName("");
-            }}
-          >
-            {t("categories.add")}
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/categories/tree">
+              <Button type="button" variant="ghost">
+                {t("admin.nav_category_tree")}
+              </Button>
+            </Link>
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing("new");
+                setName("");
+              }}
+            >
+              {t("categories.add")}
+            </Button>
+          </div>
         }
       />
       <input

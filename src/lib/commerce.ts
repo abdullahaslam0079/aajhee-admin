@@ -89,15 +89,30 @@ export function statusTone(
   }
 }
 
-export function labelStatus(status: string) {
+export function labelStatus(status: string, t?: (key: string) => string) {
+  if (t) {
+    const key = `orders.status_${status}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+  }
   return STATUS_LABELS[status as OrderStatus] || status.replaceAll("_", " ");
 }
 
-export function labelFulfillment(value: string) {
+export function labelFulfillment(value: string, t?: (key: string) => string) {
+  if (t) {
+    const key = `orders.fulfillment_${value}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+  }
   return FULFILLMENT_LABELS[value] || value.replaceAll("_", " ");
 }
 
-export function labelPayment(value: string) {
+export function labelPayment(value: string, t?: (key: string) => string) {
+  if (t) {
+    const key = `orders.payment_${value}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+  }
   return PAYMENT_LABELS[value] || value.replaceAll("_", " ");
 }
 

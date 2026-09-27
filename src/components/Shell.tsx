@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Percent,
   Receipt,
   Search,
   Store,
@@ -18,22 +19,23 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { api } from "@/lib/api";
-import { clearSession, getAccessToken } from "@/lib/auth";
+import { clearSession, getAccessToken, getRefreshToken } from "@/lib/auth";
 import { displayName, tokenExpiryMs } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useToast } from "@/lib/toast";
 import { useAuth } from "@/lib/useAuth";
+import { ensureFreshAccess } from "@/lib/api";
 import { Button } from "./ui";
 
 const NAV = [
   { href: "/dashboard", key: "admin.nav_dashboard", icon: LayoutDashboard },
   { href: "/businesses", key: "admin.nav_businesses", icon: Store },
-  { href: "/products", key: "Listings", icon: Package },
-  { href: "/orders", key: "Orders", icon: Receipt },
+  { href: "/offers", key: "admin.nav_offers", icon: Percent },
+  { href: "/products", key: "admin.nav_listings", icon: Package },
+  { href: "/orders", key: "admin.nav_orders", icon: Receipt },
   { href: "/users", key: "admin.nav_users", icon: Users },
   { href: "/categories", key: "admin.nav_categories", icon: Tag },
-  { href: "/categories/tree", key: "Category tree", icon: Tag },
   { href: "/analytics", key: "admin.nav_analytics", icon: BarChart3 },
 ] as const;
 
@@ -70,7 +72,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
       }
       const minutes = Math.max(0, Math.round((exp - Date.now()) / 60000));
       setMinutesLeft(minutes);
-      if (minutes <= 5 && !warned.current) {
+      if (minutes <= 5 && getRefreshToken()) {
+        void ensureFreshAccess();
+        warned.current = false;
+      } else if (minutes <= 5 && !warned.current) {
         warned.current = true;
         toast.push(t("admin.session_soon"), "info");
       }
@@ -85,7 +90,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     try {
-      await api("/api/admin/auth/logout", { method: "POST", auth: true });
+      await api("/api/admin/auth/logout", {
+        method: "POST",
+        auth: true,
+        body: JSON.stringify({ refresh: getRefreshToken() || undefined }),
+      });
     } catch {
       // still clear locally
     }
@@ -110,9 +119,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             }`}
           >
             <Icon size={18} />
-            <span className="flex-1">
-              {item.key.startsWith("admin.") ? t(item.key) : item.key}
-            </span>
+            <span className="flex-1">{t(item.key)}</span>
           </Link>
         );
       })}

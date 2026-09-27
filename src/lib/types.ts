@@ -17,6 +17,7 @@ export type AdminProfile = {
 
 export type AdminAuthPayload = {
   access: string;
+  refresh?: string;
   admin: AdminProfile;
 };
 
@@ -315,6 +316,7 @@ export type AnalyticsCounts = {
   branches?: number;
   offers_total?: number;
   offers_active?: number;
+  offers_pending?: number;
   scans?: number;
   avails?: number;
   redemptions?: number;
@@ -323,6 +325,12 @@ export type AnalyticsCounts = {
   business_views?: number;
   business_likes?: number;
   users_total?: number;
+  orders_total?: number;
+  orders_pending?: number;
+  orders_payment_submitted?: number;
+  pending_payment_proofs?: number;
+  low_stock_products?: number;
+  order_volume?: string | number;
 };
 
 export type TopBusiness = {

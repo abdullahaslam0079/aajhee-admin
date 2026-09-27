@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
-import { clearSession, getAccessToken, getAdmin, isLoggedIn, setSession, subscribeAuth } from "./auth";
+import { clearSession, getAccessToken, getAdmin, getRefreshToken, isLoggedIn, isRememberedSession, setSession, subscribeAuth } from "./auth";
 import type { AdminProfile } from "./types";
 
 export type AuthStatus = "unknown" | "authenticated" | "unauthenticated";
@@ -29,8 +29,12 @@ export function useAuth() {
         ) {
           return;
         }
-        const remember = Boolean(localStorage.getItem("aajhee.admin.access"));
-        setSession({ access: token, admin: data, remember });
+        setSession({
+          access: token,
+          refresh: getRefreshToken(),
+          admin: data,
+          remember: isRememberedSession(),
+        });
       })
       .catch(() => {
         if (cancelled) return;

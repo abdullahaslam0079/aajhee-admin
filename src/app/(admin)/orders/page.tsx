@@ -26,7 +26,9 @@ import {
 } from "@/lib/commerce";
 import { errorMessage } from "@/lib/errors";
 import { rs } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
 import { useDebounced } from "@/lib/hooks";
+import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
 import type { AdminBusiness, AdminOrder, OrderStatus, Paginated } from "@/lib/types";
 
@@ -42,11 +44,12 @@ export default function OrdersPage() {
 }
 
 function OrdersList() {
+  const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState(searchParams.get("status") || "");
-  const [businessId, setBusinessId] = useState(searchParams.get("business_id") || "");
+  const status = searchParams.get("status") || "";
+  const businessId = searchParams.get("business_id") || "";
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -58,6 +61,17 @@ function OrdersList() {
   const [busyId, setBusyId] = useState("");
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const q = useDebounced(search.trim());
+
+  function patchQuery(patch: Record<string, string>) {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(patch).forEach(([key, value]) => {
+      if (!value) params.delete(key);
+      else params.set(key, value);
+    });
+    const qs = params.toString();
+    router.replace(qs ? `/orders?${qs}` : "/orders");
+    setPage(1);
+  }
 
   const load = useCallback(() => {
     api<Paginated<AdminOrder> | AdminOrder[]>("/api/admin/orders", {
@@ -81,9 +95,9 @@ function OrdersList() {
         setError("");
         setUpdatedAt(new Date());
       })
-      .catch((err) => setError(errorMessage(err, "Failed to load orders")))
+      .catch((err) => setError(errorMessage(err, t("orders.load_error"))))
       .finally(() => setLoading(false));
-  }, [status, businessId, q, dateFrom, dateTo, page]);
+  }, [status, businessId, q, dateFrom, dateTo, page, t]);
 
   useEffect(() => {
     load();
@@ -125,7 +139,7 @@ function OrdersList() {
         auth: true,
         body: JSON.stringify({ status: next }),
       });
-      toast.push(`Order #${order.public_id.slice(0, 8)} → ${labelStatus(next)}`);
+      toast.push(`Order #${order.public_id.slice(0, 8)} → ${labelStatus(next, t)}`);
       load();
     } catch (err) {
       setError(errorMessage(err, "Could not update order status"));
@@ -135,34 +149,65 @@ function OrdersList() {
   }
 
   function resetFilters() {
-    setStatus("");
-    setBusinessId("");
     setSearch("");
     setDateFrom("");
     setDateTo("");
     setPage(1);
+    router.replace("/orders");
+  }
+
+  function exportCsv() {
+    downloadCsv(
+      `aajhee-orders-${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        t("orders.col_id"),
+        t("orders.col_business"),
+        t("orders.col_customer"),
+        t("orders.col_status"),
+        "Fulfillment",
+        "Payment",
+        t("orders.col_total"),
+        t("orders.col_placed"),
+      ],
+      items.map((order) => [
+        order.public_id,
+        order.business_name,
+        order.customer_name || order.customer_phone || order.customer_email || "",
+        labelStatus(order.status, t),
+        labelFulfillment(order.fulfillment_type, t),
+        labelPayment(order.payment_method, t),
+        order.total,
+        order.placed_at,
+      ]),
+    );
+    toast.push(t("orders.exported"));
   }
 
   return (
     <div>
       <PageHeader
-        title="Orders"
+        title={t("orders.title")}
         subtitle={
           updatedAt
-            ? `Platform order oversight · auto-refreshes every 30s · last update ${updatedAt.toLocaleTimeString()}`
-            : "Platform order oversight"
+            ? t("orders.subtitle_live", { time: updatedAt.toLocaleTimeString() })
+            : t("orders.subtitle")
         }
         actions={
-          <Button type="button" variant="ghost" onClick={() => load()}>
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" disabled={!items.length} onClick={exportCsv}>
+              {t("orders.export_csv")}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => load()}>
+              {t("orders.refresh")}
+            </Button>
+          </div>
         }
       />
 
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           className={`${inputClass} min-w-[220px] flex-1`}
-          placeholder="Search order ID, business, customer, phone…"
+          placeholder={t("orders.search_hint")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -172,29 +217,23 @@ function OrdersList() {
         <select
           className={`${inputClass} w-auto min-w-[160px]`}
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          aria-label="Status"
+          onChange={(e) => patchQuery({ status: e.target.value })}
+          aria-label={t("orders.col_status")}
         >
-          <option value="">All statuses</option>
+          <option value="">{t("orders.all_statuses")}</option>
           {ORDER_STATUS_OPTIONS.map((value) => (
             <option key={value} value={value}>
-              {labelStatus(value)}
+              {labelStatus(value, t)}
             </option>
           ))}
         </select>
         <select
           className={`${inputClass} w-auto min-w-[180px]`}
           value={businessId}
-          onChange={(e) => {
-            setBusinessId(e.target.value);
-            setPage(1);
-          }}
-          aria-label="Business"
+          onChange={(e) => patchQuery({ business_id: e.target.value })}
+          aria-label={t("orders.col_business")}
         >
-          <option value="">All businesses</option>
+          <option value="">{t("orders.all_businesses")}</option>
           {businesses.map((biz) => (
             <option key={biz.id} value={biz.id}>
               {biz.name}
@@ -234,20 +273,20 @@ function OrdersList() {
         <Skeleton className="h-64" />
       ) : items.length === 0 ? (
         <Empty
-          title="No orders"
-          body={hasFilters ? "No orders match these filters." : "Orders will appear here once customers check out."}
+          title={t("orders.empty_title")}
+          body={hasFilters ? t("orders.empty_filtered") : t("orders.subtitle")}
         />
       ) : (
         <div className="card table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Business</th>
-                <th>Customer</th>
-                <th>Status</th>
+                <th>{t("orders.col_id")}</th>
+                <th>{t("orders.col_business")}</th>
+                <th>{t("orders.col_customer")}</th>
+                <th>{t("orders.col_status")}</th>
                 <th>Fulfillment</th>
-                <th>Total</th>
+                <th>{t("orders.col_total")}</th>
                 <th />
               </tr>
             </thead>
@@ -299,7 +338,7 @@ function OrdersList() {
                       )}
                     </td>
                     <td>
-                      <Badge tone={statusTone(order.status)}>{labelStatus(order.status)}</Badge>
+                      <Badge tone={statusTone(order.status)}>{labelStatus(order.status, t)}</Badge>
                     </td>
                     <td>
                       {labelFulfillment(order.fulfillment_type)}
@@ -323,7 +362,7 @@ function OrdersList() {
                             }`}
                             onClick={() => void setOrderStatus(order, next)}
                           >
-                            {STATUS_ACTION_LABELS[next] || labelStatus(next)}
+                            {STATUS_ACTION_LABELS[next] || labelStatus(next, t)}
                           </button>
                         ))}
                         <Link
@@ -347,9 +386,9 @@ function OrdersList() {
         pageSize={PAGE_SIZE}
         count={count}
         onPage={setPage}
-        showingLabel={`Showing ${from}–${to} of ${count}`}
-        previousLabel="Previous"
-        nextLabel="Next"
+        showingLabel={t("common.showing", { from, to, count })}
+        previousLabel={t("common.previous")}
+        nextLabel={t("common.next")}
       />
     </div>
   );
