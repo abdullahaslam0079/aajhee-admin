@@ -89,6 +89,96 @@ export type BranchFulfillmentSettings = {
   updated_at?: string;
 };
 
+export type OrderStatus =
+  | "pending"
+  | "accepted"
+  | "cancelled"
+  | "awaiting_payment"
+  | "payment_submitted"
+  | "paid_confirmed"
+  | "preparing"
+  | "ready_for_pickup"
+  | "out_for_delivery"
+  | "completed";
+
+export type FulfillmentType = "pickup" | "local_same_day" | "nationwide";
+export type PaymentMethod =
+  | "cash_on_pickup"
+  | "cash_on_delivery"
+  | "bank_transfer"
+  | "stripe"
+  | "jazzcash";
+export type PaymentProofReviewStatus = "pending" | "accepted" | "rejected";
+
+export type OrderItem = {
+  id: number;
+  product_id: number | null;
+  product_name: string;
+  unit_base_price: string;
+  unit_sale_price: string | null;
+  unit_discount_percent: string;
+  quantity: number;
+  line_total: string;
+};
+
+export type OrderPaymentProof = {
+  id: number;
+  file_url: string | null;
+  note: string;
+  submitted_at: string;
+  review_status: PaymentProofReviewStatus;
+  reviewed_at: string | null;
+  review_note: string;
+};
+
+export type OrderDeliverySnapshot = {
+  fulfillment_type: FulfillmentType;
+  delivery_fee: string;
+  max_delivery_hours: number;
+  promised_by: string | null;
+  branch_city_name?: string;
+  customer_city_name?: string;
+};
+
+export type AdminOrder = {
+  id: number;
+  public_id: string;
+  business_id: number;
+  business_name: string;
+  branch_id: number;
+  branch_name: string;
+  status: OrderStatus;
+  fulfillment_type: FulfillmentType;
+  payment_method: PaymentMethod;
+  subtotal: string;
+  delivery_fee: string;
+  total: string;
+  delivery_address_text: string;
+  customer_notes: string;
+  customer_name?: string;
+  customer_phone?: string | null;
+  customer_email?: string | null;
+  customer_cancel_allowed?: boolean;
+  customer_cancel_until?: string | null;
+  can_customer_cancel?: boolean;
+  cancelled_by?: string;
+  cancel_reason?: string;
+  cancelled_at?: string | null;
+  placed_at: string;
+  updated_at: string;
+  items: OrderItem[];
+  delivery_snapshot?: OrderDeliverySnapshot | null;
+  payment_proofs: OrderPaymentProof[];
+  bank_transfer_instructions?: string;
+};
+
+export type ProductGalleryImage = {
+  id: number;
+  image_url: string | null;
+  source_url?: string;
+  sort_order?: number;
+};
+
 export type OfferType = "item" | "percentage_bill" | "deal";
 export type UsageLimitType =
   | "one_time"

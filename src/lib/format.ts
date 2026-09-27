@@ -7,6 +7,17 @@ export function money(value?: number | string | null) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
 }
 
+/** Pakistani rupee display used by the commerce (orders/listings) screens. */
+export function rs(value?: number | string | null) {
+  if (value === undefined || value === null || value === "") return "Rs —";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(n)) return `Rs ${value}`;
+  return `Rs ${new Intl.NumberFormat("en-PK", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n)}`;
+}
+
 export function percent(value?: number | string | null) {
   const n = typeof value === "string" ? Number(value) : value;
   if (n == null || Number.isNaN(n)) return null;

@@ -215,6 +215,23 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
             onChange={(e) => setFulfillment({ ...fulfillment, local_delivery_fee: e.target.value })}
           />
         </Field>
+        <Field
+          label="Local max delivery hours"
+          hint="Used to compute the promised-by time shown to customers."
+        >
+          <input
+            className={inputClass}
+            type="number"
+            min={1}
+            value={fulfillment.local_max_delivery_hours}
+            onChange={(e) =>
+              setFulfillment({
+                ...fulfillment,
+                local_max_delivery_hours: Number(e.target.value) || 24,
+              })
+            }
+          />
+        </Field>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -229,6 +246,23 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
             value={fulfillment.nationwide_delivery_fee}
             onChange={(e) =>
               setFulfillment({ ...fulfillment, nationwide_delivery_fee: e.target.value })
+            }
+          />
+        </Field>
+        <Field
+          label="Nationwide max delivery hours"
+          hint="Used to compute the promised-by time for nationwide orders."
+        >
+          <input
+            className={inputClass}
+            type="number"
+            min={1}
+            value={fulfillment.nationwide_max_delivery_hours}
+            onChange={(e) =>
+              setFulfillment({
+                ...fulfillment,
+                nationwide_max_delivery_hours: Number(e.target.value) || 72,
+              })
             }
           />
         </Field>
@@ -274,7 +308,10 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
             />
           </Field>
         ) : null}
-        <Field label="Customer cancel policy">
+        <Field
+          label="Customer cancel policy"
+          hint="Customers can only cancel while the order is still pending. Once the merchant accepts, cancelling is merchant/admin-only — even if the window is still open."
+        >
           <select
             className={inputClass}
             value={fulfillment.customer_cancel_policy}
@@ -286,11 +323,14 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
             }
           >
             <option value="disabled">Customer cannot cancel</option>
-            <option value="window_minutes">Cancel within window</option>
+            <option value="window_minutes">Allow while pending (time window)</option>
           </select>
         </Field>
         {fulfillment.customer_cancel_policy === "window_minutes" ? (
-          <Field label="Cancel window (minutes)">
+          <Field
+            label="Cancel window (minutes)"
+            hint="Counted from when the order is placed; only applies while the order is pending."
+          >
             <input
               className={inputClass}
               type="number"
