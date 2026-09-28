@@ -46,6 +46,7 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
     password_confirm: "",
     presence_mode: (business?.presence_mode || "hybrid") as PresenceMode,
     online_coverage: (business?.online_coverage || "city") as OnlineCoverage,
+    verification_status: business?.verification_status || "under_review",
   });
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       data.set("category_id", form.category_id);
       data.set("presence_mode", form.presence_mode);
       data.set("online_coverage", form.online_coverage);
+      if (editing) data.set("verification_status", form.verification_status);
       if (!editing) {
         data.set("email", form.email);
         data.set("password", form.password);
@@ -167,6 +169,20 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
           >
             <option value="city">City</option>
             <option value="country">Whole country</option>
+          </select>
+        </Field>
+      ) : null}
+
+      {editing ? (
+        <Field label="Verification status" error={errors.verification_status}>
+          <select
+            className={inputClass}
+            value={form.verification_status}
+            onChange={(e) => setForm({ ...form, verification_status: e.target.value })}
+          >
+            <option value="under_review">Under review</option>
+            <option value="verified">Verified</option>
+            <option value="suspended">Suspended</option>
           </select>
         </Field>
       ) : null}

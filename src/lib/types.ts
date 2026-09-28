@@ -39,6 +39,12 @@ export type AdminBusiness = {
   category_name?: string;
   presence_mode?: PresenceMode | string;
   online_coverage?: OnlineCoverage | string;
+  verification_status?: "under_review" | "verified" | "suspended" | string;
+  phone?: string;
+  instagram_url?: string;
+  cnic_image_url?: string | null;
+  shop_photo_url?: string | null;
+  is_paused?: boolean;
   owner_id?: number;
   owner_email?: string;
   owner_is_active?: boolean;
