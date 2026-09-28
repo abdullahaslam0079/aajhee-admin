@@ -30,6 +30,8 @@ export type Category = {
 export type PresenceMode = "online_only" | "instore_only" | "hybrid";
 export type OnlineCoverage = "city" | "country";
 
+export type VerificationStatus = "under_review" | "verified" | "suspended";
+
 export type AdminBusiness = {
   id: number;
   name: string;
@@ -39,12 +41,14 @@ export type AdminBusiness = {
   category_name?: string;
   presence_mode?: PresenceMode | string;
   online_coverage?: OnlineCoverage | string;
-  verification_status?: "under_review" | "verified" | "suspended" | string;
+  verification_status?: VerificationStatus | string;
   phone?: string;
   instagram_url?: string;
   cnic_image_url?: string | null;
   shop_photo_url?: string | null;
+  notification_whatsapp?: string;
   is_paused?: boolean;
+  is_customer_visible?: boolean;
   owner_id?: number;
   owner_email?: string;
   owner_is_active?: boolean;

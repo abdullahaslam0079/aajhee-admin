@@ -11,7 +11,7 @@ import { errorMessage } from "@/lib/errors";
 import { branchAddress } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
-import type { AdminBranch, AdminBusiness, Paginated } from "@/lib/types";
+import type { AdminBranch, AdminBusiness, Paginated, VerificationStatus } from "@/lib/types";
 
 type Listing = {
   id: number;
@@ -23,6 +23,20 @@ type Listing = {
   category_name?: string;
 };
 
+function statusTone(status?: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "verified") return "success";
+  if (status === "suspended") return "danger";
+  if (status === "under_review") return "warning";
+  return "neutral";
+}
+
+function statusLabel(status?: string) {
+  if (status === "verified") return "Verified";
+  if (status === "suspended") return "Suspended";
+  if (status === "under_review") return "Under review";
+  return status || "—";
+}
+
 export default function BusinessDetailPage({ params }: PageProps<"/businesses/[id]">) {
   const { id } = use(params);
   const { t } = useI18n();
@@ -33,6 +47,7 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
   const [listings, setListings] = useState<Listing[]>([]);
   const [error, setError] = useState("");
   const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([
@@ -68,6 +83,31 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
     }
   }
 
+  async function setVerification(next: VerificationStatus) {
+    setBusy(true);
+    try {
+      const data = new FormData();
+      data.set("verification_status", next);
+      const updated = await api<AdminBusiness & { message?: string }>(
+        `/api/admin/businesses/${id}`,
+        { method: "PATCH", auth: true, body: data },
+      );
+      setBusiness(updated);
+      toast.push(
+        next === "verified"
+          ? "Merchant verified — store can appear to customers"
+          : next === "suspended"
+            ? "Merchant suspended — store hidden from customers"
+            : "Merchant set back to under review",
+      );
+      load();
+    } catch (err) {
+      toast.push(errorMessage(err, "Could not update verification"), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (error) return <ErrorBox message={error} onRetry={load} />;
   if (!business) return <Skeleton className="h-40" />;
 
@@ -83,7 +123,32 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
         title={business.name}
         subtitle={business.category_name}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {business.verification_status !== "verified" ? (
+              <Button type="button" disabled={busy} onClick={() => void setVerification("verified")}>
+                Approve merchant
+              </Button>
+            ) : null}
+            {business.verification_status !== "suspended" ? (
+              <Button
+                type="button"
+                variant="danger"
+                disabled={busy}
+                onClick={() => void setVerification("suspended")}
+              >
+                Suspend
+              </Button>
+            ) : null}
+            {business.verification_status === "verified" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => void setVerification("under_review")}
+              >
+                Mark under review
+              </Button>
+            ) : null}
             <Link href={`/businesses/${id}/edit`}>
               <Button type="button" variant="ghost">{t("common.edit")}</Button>
             </Link>
@@ -93,11 +158,23 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
           </div>
         }
       />
-      <div className="mb-6 flex items-center gap-4">
+
+      <div className="mb-6 flex flex-wrap items-start gap-4">
         <Cover src={business.logo_url} label={business.name} className="h-16 w-16" />
-        <div>
-          <p className="text-sm text-muted">{t("businesses.owner")}: {business.owner_email || business.email}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-muted">
+            {t("businesses.owner")}: {business.owner_email || business.email}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Badge tone={statusTone(business.verification_status)}>
+              {statusLabel(business.verification_status)}
+            </Badge>
+            {business.is_paused ? <Badge tone="warning">Shop paused</Badge> : null}
+            {business.is_customer_visible ? (
+              <Badge tone="success">Visible to customers</Badge>
+            ) : (
+              <Badge tone="warning">Hidden from customers</Badge>
+            )}
             {business.presence_mode ? (
               <Badge tone="deal">
                 {business.presence_mode === "online_only"
@@ -114,10 +191,74 @@ export default function BusinessDetailPage({ params }: PageProps<"/businesses/[i
                   : t("businesses.coverage_city")}
               </Badge>
             ) : null}
-            {business.owner_is_active === false ? <Badge tone="danger">{t("businesses.owner_disabled")}</Badge> : null}
+            {business.owner_is_active === false ? (
+              <Badge tone="danger">{t("businesses.owner_disabled")}</Badge>
+            ) : null}
           </div>
         </div>
       </div>
+
+      <section className="card mb-8 space-y-4 p-5">
+        <h2 className="text-lg font-semibold">Verification & contact</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Phone</p>
+            <p className="mt-1 text-sm">{business.phone || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">WhatsApp / alerts</p>
+            <p className="mt-1 text-sm">{business.notification_whatsapp || "—"}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Instagram</p>
+            {business.instagram_url ? (
+              <a
+                href={business.instagram_url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-block text-sm font-semibold text-deal"
+              >
+                {business.instagram_url}
+              </a>
+            ) : (
+              <p className="mt-1 text-sm text-muted">—</p>
+            )}
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">CNIC</p>
+            {business.cnic_image_url ? (
+              <a href={business.cnic_image_url} target="_blank" rel="noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={business.cnic_image_url}
+                  alt="CNIC"
+                  className="max-h-48 rounded-xl border border-line object-contain"
+                />
+              </a>
+            ) : (
+              <p className="text-sm text-muted">No CNIC uploaded</p>
+            )}
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Shop photo</p>
+            {business.shop_photo_url ? (
+              <a href={business.shop_photo_url} target="_blank" rel="noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={business.shop_photo_url}
+                  alt="Shop"
+                  className="max-h-48 rounded-xl border border-line object-contain"
+                />
+              </a>
+            ) : (
+              <p className="text-sm text-muted">No shop photo uploaded</p>
+            )}
+          </div>
+        </div>
+      </section>
+
       <div className="mb-8 grid gap-3 sm:grid-cols-2">
         <StatCard label={t("businesses.branches")} value={business.branch_count ?? branches.length} />
         <StatCard label="Listings" value={listings.length} />
