@@ -22,11 +22,11 @@ const emptyContact = (): BranchContact => ({
 const defaultFulfillment = (): BranchFulfillmentSettings => ({
   pickup_enabled: true,
   pickup_radius_km: "15.00",
-  local_same_day_enabled: true,
-  local_delivery_fee: "0.00",
-  local_max_delivery_hours: 24,
+  same_day_enabled: true,
+  same_day_fee: "0.00",
+  same_day_max_delivery_hours: 24,
   nationwide_enabled: false,
-  nationwide_delivery_fee: "0.00",
+  nationwide_delivery_fee: "300.00",
   nationwide_max_delivery_hours: 72,
   customer_cancel_policy: "window_minutes",
   customer_cancel_window_minutes: 30,
@@ -94,7 +94,7 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
         body: JSON.stringify({
           ...fulfillment,
           pickup_radius_km: String(fulfillment.pickup_radius_km),
-          local_delivery_fee: String(fulfillment.local_delivery_fee),
+          same_day_fee: String(fulfillment.same_day_fee),
           nationwide_delivery_fee: String(fulfillment.nationwide_delivery_fee),
         }),
       });
@@ -201,33 +201,33 @@ export function BranchCommercePanel({ branchId }: { branchId: number }) {
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={fulfillment.local_same_day_enabled}
+            checked={fulfillment.same_day_enabled}
             onChange={(e) =>
-              setFulfillment({ ...fulfillment, local_same_day_enabled: e.target.checked })
+              setFulfillment({ ...fulfillment, same_day_enabled: e.target.checked })
             }
           />
-          Local / same-day delivery
+          Same-day delivery (store city)
         </label>
-        <Field label="Local delivery fee">
+        <Field label="Same-day fee">
           <input
             className={inputClass}
-            value={fulfillment.local_delivery_fee}
-            onChange={(e) => setFulfillment({ ...fulfillment, local_delivery_fee: e.target.value })}
+            value={fulfillment.same_day_fee}
+            onChange={(e) => setFulfillment({ ...fulfillment, same_day_fee: e.target.value })}
           />
         </Field>
         <Field
-          label="Local max delivery hours"
+          label="Same-day max delivery hours"
           hint="Used to compute the promised-by time shown to customers."
         >
           <input
             className={inputClass}
             type="number"
             min={1}
-            value={fulfillment.local_max_delivery_hours}
+            value={fulfillment.same_day_max_delivery_hours}
             onChange={(e) =>
               setFulfillment({
                 ...fulfillment,
-                local_max_delivery_hours: Number(e.target.value) || 24,
+                same_day_max_delivery_hours: Number(e.target.value) || 24,
               })
             }
           />

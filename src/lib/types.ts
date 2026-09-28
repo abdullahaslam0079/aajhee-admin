@@ -75,9 +75,9 @@ export type BranchContact = {
 export type BranchFulfillmentSettings = {
   pickup_enabled: boolean;
   pickup_radius_km: string | number;
-  local_same_day_enabled: boolean;
-  local_delivery_fee: string | number;
-  local_max_delivery_hours: number;
+  same_day_enabled: boolean;
+  same_day_fee: string | number;
+  same_day_max_delivery_hours: number;
   nationwide_enabled: boolean;
   nationwide_delivery_fee: string | number;
   nationwide_max_delivery_hours: number;
@@ -159,6 +159,9 @@ export type AdminOrder = {
   customer_name?: string;
   customer_phone?: string | null;
   customer_email?: string | null;
+  payment_status?: string;
+  delivery_house_number?: string;
+  delivery_landmark?: string;
   customer_cancel_allowed?: boolean;
   customer_cancel_until?: string | null;
   can_customer_cancel?: boolean;

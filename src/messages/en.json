@@ -616,7 +616,7 @@
     "status_out_for_delivery": "Out for delivery",
     "status_completed": "Completed",
     "fulfillment_pickup": "Pickup",
-    "fulfillment_local_same_day": "Local delivery",
+    "fulfillment_local_same_day": "Same-day delivery",
     "fulfillment_nationwide": "Nationwide",
     "payment_cash_on_pickup": "Cash on pickup",
     "payment_cash_on_delivery": "Cash on delivery",

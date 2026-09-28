@@ -54,7 +54,7 @@ export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
 
 export const FULFILLMENT_LABELS: Record<string, string> = {
   pickup: "Pickup",
-  local_same_day: "Local delivery",
+  local_same_day: "Same-day delivery",
   nationwide: "Nationwide",
 };
 

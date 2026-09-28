@@ -616,7 +616,7 @@
     "status_out_for_delivery": "Unterwegs",
     "status_completed": "Abgeschlossen",
     "fulfillment_pickup": "Abholung",
-    "fulfillment_local_same_day": "Lokale Lieferung",
+    "fulfillment_local_same_day": "Lieferung am selben Tag",
     "fulfillment_nationwide": "Bundesweit",
     "payment_cash_on_pickup": "Bar bei Abholung",
     "payment_cash_on_delivery": "Bar bei Lieferung",
