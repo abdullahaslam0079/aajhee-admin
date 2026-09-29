@@ -21,6 +21,7 @@ const PAGES = [
   { href: "/offers", key: "admin.nav_offers" },
   { href: "/products", key: "admin.nav_listings" },
   { href: "/orders", key: "admin.nav_orders" },
+  { href: "/reviews", key: "admin.nav_reviews" },
   { href: "/users", key: "admin.nav_users" },
   { href: "/categories", key: "admin.nav_categories" },
   { href: "/categories/tree", key: "admin.nav_category_tree" },

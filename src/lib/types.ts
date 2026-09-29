@@ -130,6 +130,38 @@ export type OrderItem = {
   unit_discount_percent: string;
   quantity: number;
   line_total: string;
+  can_review?: boolean;
+  review?: ProductReview | null;
+};
+
+export type ProductReviewImage = {
+  id: number;
+  image_url: string | null;
+  sort_order: number;
+};
+
+export type ProductReview = {
+  id: number;
+  product_id: number;
+  product_name: string;
+  business_id: number;
+  business_name: string;
+  order_public_id: string;
+  order_item_id: number;
+  rating: number;
+  comment: string;
+  status: "published" | "hidden" | "flagged" | string;
+  images: ProductReviewImage[];
+  user_display_name: string;
+  merchant_reply: string;
+  merchant_replied_at: string | null;
+  flagged_at: string | null;
+  flag_reason: string;
+  verified_purchase: boolean;
+  can_edit: boolean;
+  edited_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type OrderPaymentProof = {

@@ -85,6 +85,7 @@
     "nav_offers": "Offers",
     "nav_listings": "Listings",
     "nav_orders": "Orders",
+    "nav_reviews": "Reviews",
     "nav_users": "Users",
     "nav_categories": "Categories",
     "nav_category_tree": "Category tree",
@@ -638,5 +639,24 @@
     "root": "Root",
     "parent_label": "parent {id}",
     "root_label": "root"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "subtitle": "Moderate customer product reviews and flagged content.",
+    "filter_all": "All",
+    "filter_flagged": "Flagged",
+    "filter_published": "Published",
+    "filter_hidden": "Hidden",
+    "empty": "No reviews found",
+    "empty_hint": "Reviews appear after customers rate delivered orders.",
+    "col_product": "Product",
+    "col_rating": "Rating",
+    "col_status": "Status",
+    "col_date": "Date",
+    "col_actions": "Actions",
+    "hide": "Hide",
+    "restore": "Restore",
+    "dismiss_flag": "Dismiss flag",
+    "action_ok": "Review updated."
   }
 }

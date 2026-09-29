@@ -85,6 +85,7 @@
     "nav_offers": "Angebote",
     "nav_listings": "Artikel",
     "nav_orders": "Bestellungen",
+    "nav_reviews": "Bewertungen",
     "nav_users": "Nutzer",
     "nav_categories": "Kategorien",
     "nav_category_tree": "Kategoriebaum",
@@ -638,5 +639,24 @@
     "root": "Wurzel",
     "parent_label": "Eltern {id}",
     "root_label": "Wurzel"
+  },
+  "reviews": {
+    "title": "Bewertungen",
+    "subtitle": "Kundenbewertungen und gemeldete Inhalte moderieren.",
+    "filter_all": "Alle",
+    "filter_flagged": "Gemeldet",
+    "filter_published": "Veröffentlicht",
+    "filter_hidden": "Versteckt",
+    "empty": "Keine Bewertungen",
+    "empty_hint": "Bewertungen erscheinen, nachdem Kunden gelieferte Bestellungen bewerten.",
+    "col_product": "Produkt",
+    "col_rating": "Bewertung",
+    "col_status": "Status",
+    "col_date": "Datum",
+    "col_actions": "Aktionen",
+    "hide": "Verstecken",
+    "restore": "Wiederherstellen",
+    "dismiss_flag": "Meldung verwerfen",
+    "action_ok": "Bewertung aktualisiert."
   }
 }
