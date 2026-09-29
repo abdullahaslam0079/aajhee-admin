@@ -44,6 +44,11 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
     email: business?.email || "",
     password: "",
     password_confirm: "",
+    phone: business?.phone || "",
+    notification_whatsapp: business?.notification_whatsapp || "",
+    instagram_url: business?.instagram_url || "",
+    city: "",
+    address: "",
     presence_mode: (business?.presence_mode || "hybrid") as PresenceMode,
     online_coverage: (business?.online_coverage || "city") as OnlineCoverage,
     verification_status: business?.verification_status || "under_review",
@@ -75,6 +80,13 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       data.set("category_id", form.category_id);
       data.set("presence_mode", form.presence_mode);
       data.set("online_coverage", form.online_coverage);
+      data.set("phone", form.phone);
+      data.set("notification_whatsapp", form.notification_whatsapp);
+      data.set("instagram_url", form.instagram_url);
+      if (!editing) {
+        if (form.city) data.set("primary_city", form.city);
+        if (form.address) data.set("address_text", form.address);
+      }
       if (editing) data.set("verification_status", form.verification_status);
       if (!editing) {
         data.set("email", form.email);
@@ -107,7 +119,11 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
   const showCoverage = form.presence_mode !== "instore_only";
 
   return (
-    <form onSubmit={submit} className="card mx-auto max-w-xl space-y-4 p-6">
+    <form
+      onSubmit={submit}
+      className="card mx-auto max-w-xl space-y-4 p-6"
+      autoComplete="off"
+    >
       {error ? <ErrorBox message={error} /> : null}
       <div className="flex items-center gap-4">
         <Cover src={logoPreview} label={form.name || "B"} className="h-16 w-16" />
@@ -122,7 +138,7 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
         </label>
       </div>
       <Field label={t("businesses.name")} error={errors.name}>
-        <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoComplete="off" />
       </Field>
       <Field label={t("businesses.category")} error={errors.category_id}>
         <select className={inputClass} value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
@@ -134,6 +150,54 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
           ))}
         </select>
       </Field>
+
+      <Field label="Phone" error={errors.phone}>
+        <input
+          className={inputClass}
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          placeholder="+92…"
+          autoComplete="off"
+        />
+      </Field>
+      <Field label="WhatsApp / alerts" error={errors.notification_whatsapp}>
+        <input
+          className={inputClass}
+          value={form.notification_whatsapp}
+          onChange={(e) => setForm({ ...form, notification_whatsapp: e.target.value })}
+          placeholder="+92…"
+          autoComplete="off"
+        />
+      </Field>
+      <Field label="Instagram" error={errors.instagram_url}>
+        <input
+          className={inputClass}
+          value={form.instagram_url}
+          onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+          placeholder="https://instagram.com/…"
+          autoComplete="off"
+        />
+      </Field>
+      {!editing ? (
+        <>
+          <Field label="City" error={errors.city}>
+            <input
+              className={inputClass}
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Address" error={errors.address}>
+            <input
+              className={inputClass}
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              autoComplete="off"
+            />
+          </Field>
+        </>
+      ) : null}
 
       <Field label={t("businesses.presence_mode")} error={errors.presence_mode} hint={t("businesses.presence_hint")}>
         <div className="space-y-2">
@@ -188,15 +252,41 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       ) : null}
 
       <Field label={t("businesses.email")} error={errors.email} hint={editing ? t("businesses.owner") : undefined}>
-        <input className={inputClass} type="email" value={form.email} disabled={editing} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input
+          className={inputClass}
+          type="email"
+          name="admin_business_email"
+          value={form.email}
+          disabled={editing}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+          autoComplete="off"
+        />
       </Field>
       {editing ? null : (
         <>
           <Field label={t("businesses.password")} error={errors.password}>
-            <input className={inputClass} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+            <input
+              className={inputClass}
+              type="password"
+              name="admin_business_password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
           </Field>
           <Field label={t("businesses.confirm_password")} error={errors.password_confirm}>
-            <input className={inputClass} type="password" value={form.password_confirm} onChange={(e) => setForm({ ...form, password_confirm: e.target.value })} required />
+            <input
+              className={inputClass}
+              type="password"
+              name="admin_business_password_confirm"
+              value={form.password_confirm}
+              onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
+              required
+              autoComplete="new-password"
+            />
           </Field>
         </>
       )}

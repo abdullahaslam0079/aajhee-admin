@@ -11,6 +11,7 @@ import {
   Empty,
   ErrorBox,
   Field,
+  Modal,
   PageHeader,
   Pagination,
   Skeleton,
@@ -21,7 +22,9 @@ import { errorMessage } from "@/lib/errors";
 import { rs } from "@/lib/format";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { canWriteAdmin } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
+import { useAuth } from "@/lib/useAuth";
 import type { AdminBusiness, Paginated } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -39,6 +42,8 @@ function ProductsList() {
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
+  const { admin } = useAuth();
+  const canWrite = canWriteAdmin(admin, "other");
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [enabledFilter, setEnabledFilter] = useState("");
@@ -54,6 +59,8 @@ function ProductsList() {
   const [selected, setSelected] = useState<number[]>([]);
   const [bulkPercent, setBulkPercent] = useState("10");
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmApplyAll, setConfirmApplyAll] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const q = useDebounced(search.trim());
 
   const load = useCallback(() => {
@@ -121,8 +128,12 @@ function ProductsList() {
       return;
     }
     if (allProducts && !businessId) {
-      const ok = window.confirm(t("products.apply_all"));
-      if (!ok) return;
+      setError(t("products.bulk_need_business"));
+      return;
+    }
+    if (allProducts && confirmText.trim() !== "CONFIRM") {
+      setError(t("products.bulk_confirm_required"));
+      return;
     }
     setBulkBusy(true);
     setError("");
@@ -135,10 +146,13 @@ function ProductsList() {
           product_ids: allProducts ? [] : selected,
           all_products: allProducts,
           business_id: allProducts && businessId ? Number(businessId) : undefined,
+          confirm: allProducts ? "CONFIRM" : undefined,
         }),
       });
       toast.push(t("products.bulk_ok", { count: result?.updated ?? (allProducts ? count : selected.length) }));
       setSelected([]);
+      setConfirmApplyAll(false);
+      setConfirmText("");
       load();
     } catch (err) {
       setError(errorMessage(err, t("products.bulk_error")));
@@ -146,6 +160,19 @@ function ProductsList() {
       setBulkBusy(false);
     }
   }
+
+  function openApplyAll() {
+    if (!businessId) {
+      setError(t("products.bulk_need_business"));
+      return;
+    }
+    setError("");
+    setConfirmText("");
+    setConfirmApplyAll(true);
+  }
+
+  const selectedBusinessName =
+    businesses.find((b) => String(b.id) === String(businessId))?.name || "selected business";
 
   return (
     <div>
@@ -157,9 +184,11 @@ function ProductsList() {
             : t("products.subtitle")
         }
         actions={
-          <Link href="/products/new">
-            <Button type="button">{t("products.add")}</Button>
-          </Link>
+          canWrite ? (
+            <Link href="/products/new">
+              <Button type="button">{t("products.add")}</Button>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -218,7 +247,7 @@ function ProductsList() {
 
       {error ? <ErrorBox message={error} onRetry={load} /> : null}
 
-      {items.length > 0 ? (
+      {canWrite && items.length > 0 ? (
         <div className="card mb-4 flex flex-wrap items-end gap-3 p-4">
           <label className="flex items-center gap-2 pb-2.5 text-sm font-semibold">
             <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectPage} />
@@ -242,8 +271,8 @@ function ProductsList() {
           >
             {bulkBusy ? t("products.applying") : t("products.apply_selected")}
           </Button>
-          <Button type="button" variant="ghost" disabled={bulkBusy} onClick={() => void applyBulkDiscount(true)}>
-            {businessId ? t("products.apply_business") : t("products.apply_all")}
+          <Button type="button" variant="ghost" disabled={bulkBusy} onClick={openApplyAll}>
+            {t("products.apply_business")}
           </Button>
           {selected.length ? (
             <button
@@ -264,7 +293,7 @@ function ProductsList() {
           title={t("products.empty_title")}
           body={hasFilters ? t("products.empty_filtered") : t("products.empty_subtitle")}
           action={
-            hasFilters ? undefined : (
+            hasFilters || !canWrite ? undefined : (
               <Link href="/products/new">
                 <Button type="button">{t("products.add")}</Button>
               </Link>
@@ -290,17 +319,23 @@ function ProductsList() {
               {items.map((p) => (
                 <tr
                   key={p.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/products/${p.id}/edit`)}
+                  className={canWrite ? "cursor-pointer" : undefined}
+                  onClick={() => {
+                    if (canWrite) router.push(`/products/${p.id}/edit`);
+                  }}
                 >
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(p.id)}
-                      onChange={() => toggleSelect(p.id)}
-                      aria-label={p.name}
-                    />
-                  </td>
+                  {canWrite ? (
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        aria-label={p.name}
+                      />
+                    </td>
+                  ) : (
+                    <td />
+                  )}
                   <td>
                     <div className="flex items-center gap-3">
                       <Cover src={p.image_url} label={p.name} className="h-9 w-9" />
@@ -341,13 +376,15 @@ function ProductsList() {
                     </Badge>
                   </td>
                   <td className="text-right">
-                    <Link
-                      href={`/products/${p.id}/edit`}
-                      className="text-sm font-semibold text-deal"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {t("common.edit")}
-                    </Link>
+                    {canWrite ? (
+                      <Link
+                        href={`/products/${p.id}/edit`}
+                        className="text-sm font-semibold text-deal"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t("common.edit")}
+                      </Link>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -365,6 +402,52 @@ function ProductsList() {
         previousLabel={t("common.previous")}
         nextLabel={t("common.next")}
       />
+
+      {confirmApplyAll ? (
+        <Modal
+          title={t("products.apply_business")}
+          onClose={() => {
+            setConfirmApplyAll(false);
+            setConfirmText("");
+          }}
+        >
+          <p className="mb-3 text-sm text-muted">
+            {t("products.bulk_confirm_message", {
+              count,
+              percent: bulkPercent,
+              business: selectedBusinessName,
+            })}
+          </p>
+          <Field label={t("products.bulk_confirm_label")} hint={t("products.bulk_confirm_hint")}>
+            <input
+              className={inputClass}
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="CONFIRM"
+              autoComplete="off"
+            />
+          </Field>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setConfirmApplyAll(false);
+                setConfirmText("");
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={bulkBusy || confirmText.trim() !== "CONFIRM"}
+              onClick={() => void applyBulkDiscount(true)}
+            >
+              {bulkBusy ? t("products.applying") : t("products.apply_business")}
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

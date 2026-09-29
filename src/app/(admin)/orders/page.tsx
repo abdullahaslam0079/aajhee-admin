@@ -29,7 +29,10 @@ import { rs } from "@/lib/format";
 import { downloadCsv } from "@/lib/csv";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { formatOrderNumber, orderNumber } from "@/lib/orderNumber";
+import { canWriteAdmin } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
+import { useAuth } from "@/lib/useAuth";
 import type { AdminBusiness, AdminOrder, OrderStatus, Paginated } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -47,6 +50,8 @@ function OrdersList() {
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
+  const { admin } = useAuth();
+  const canWrite = canWriteAdmin(admin, "orders");
   const searchParams = useSearchParams();
   const status = searchParams.get("status") || "";
   const businessId = searchParams.get("business_id") || "";
@@ -139,7 +144,7 @@ function OrdersList() {
         auth: true,
         body: JSON.stringify({ status: next }),
       });
-      toast.push(`Order #${order.public_id.slice(0, 8)} → ${labelStatus(next, t)}`);
+      toast.push(`Order ${formatOrderNumber(order.public_id)} → ${labelStatus(next, t)}`);
       load();
     } catch (err) {
       setError(errorMessage(err, "Could not update order status"));
@@ -170,7 +175,7 @@ function OrdersList() {
         t("orders.col_placed"),
       ],
       items.map((order) => [
-        order.public_id,
+        order.short_id || orderNumber(order.public_id) || order.public_id,
         order.business_name,
         order.customer_name || order.customer_phone || order.customer_email || "",
         labelStatus(order.status, t),
@@ -306,7 +311,7 @@ function OrdersList() {
                         className="font-mono text-xs font-semibold hover:text-deal"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        #{order.public_id.slice(0, 8)}
+                        {formatOrderNumber(order.public_id)}
                       </Link>
                       <div className="text-xs text-muted">{formatDateTime(order.placed_at)}</div>
                       {order.items?.length ? (
@@ -350,21 +355,23 @@ function OrdersList() {
                         className="flex flex-wrap justify-end gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {actions.map((next) => (
-                          <button
-                            key={next}
-                            type="button"
-                            disabled={busy}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50 ${
-                              next === "cancelled"
-                                ? "ring-1 ring-line hover:bg-paper"
-                                : "bg-deal-deep text-white hover:bg-deal"
-                            }`}
-                            onClick={() => void setOrderStatus(order, next)}
-                          >
-                            {STATUS_ACTION_LABELS[next] || labelStatus(next, t)}
-                          </button>
-                        ))}
+                        {canWrite
+                          ? actions.map((next) => (
+                              <button
+                                key={next}
+                                type="button"
+                                disabled={busy}
+                                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50 ${
+                                  next === "cancelled"
+                                    ? "ring-1 ring-line hover:bg-paper"
+                                    : "bg-deal-deep text-white hover:bg-deal"
+                                }`}
+                                onClick={() => void setOrderStatus(order, next)}
+                              >
+                                {STATUS_ACTION_LABELS[next] || labelStatus(next, t)}
+                              </button>
+                            ))
+                          : null}
                         <Link
                           href={`/orders/${order.public_id}`}
                           className="rounded-lg px-2.5 py-1 text-xs font-semibold text-deal hover:bg-paper"

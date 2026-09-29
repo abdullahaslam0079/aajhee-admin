@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Cover, Empty, ErrorBox, PageHeader, Pagination, Skeleton, inputClass } from "@/components/ui";
+import { Badge, Button, ConfirmDialog, Cover, Empty, ErrorBox, PageHeader, Pagination, Skeleton, inputClass } from "@/components/ui";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
+import { OFFERS_ENABLED } from "@/lib/flags";
 import { compact } from "@/lib/format";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { canWriteAdmin } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
-import type { AdminBusiness, Paginated, VerificationStatus } from "@/lib/types";
+import { useAuth } from "@/lib/useAuth";
+import type { AdminBusiness, Paginated } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
@@ -39,12 +42,15 @@ export default function BusinessesPage() {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
+  const { admin } = useAuth();
+  const canWrite = canWriteAdmin(admin, "other");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paginated<AdminBusiness> | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [suspendTarget, setSuspendTarget] = useState<AdminBusiness | null>(null);
   const q = useDebounced(search);
 
   const load = useCallback(() => {
@@ -78,22 +84,32 @@ export default function BusinessesPage() {
     toast.push(t("common.copied"));
   }
 
-  async function setVerification(biz: AdminBusiness, next: VerificationStatus, e: React.MouseEvent) {
+  async function approve(biz: AdminBusiness, e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      const data = new FormData();
-      data.set("verification_status", next);
-      await api(`/api/admin/businesses/${biz.id}`, { method: "PATCH", auth: true, body: data });
-      toast.push(
-        next === "verified"
-          ? `${biz.name} verified`
-          : next === "suspended"
-            ? `${biz.name} suspended`
-            : `${biz.name} set to under review`,
-      );
+      await api(`/api/admin/businesses/${biz.id}/verify`, {
+        method: "POST",
+        auth: true,
+        body: JSON.stringify({ action: "approve" }),
+      });
+      toast.push(`${biz.name} approved`);
       load();
     } catch (err) {
-      toast.push(errorMessage(err, "Could not update verification"), "error");
+      toast.push(errorMessage(err, "Could not approve merchant"), "error");
+    }
+  }
+
+  async function suspendConfirmed() {
+    if (!suspendTarget) return;
+    try {
+      const data = new FormData();
+      data.set("verification_status", "suspended");
+      await api(`/api/admin/businesses/${suspendTarget.id}`, { method: "PATCH", auth: true, body: data });
+      toast.push(`${suspendTarget.name} suspended`);
+      setSuspendTarget(null);
+      load();
+    } catch (err) {
+      toast.push(errorMessage(err, "Could not suspend merchant"), "error");
     }
   }
 
@@ -103,9 +119,11 @@ export default function BusinessesPage() {
         title={t("businesses.title")}
         subtitle={count ? t("common.showing", { from, to, count }) : undefined}
         actions={
-          <Link href="/businesses/new">
-            <Button type="button">{t("businesses.add")}</Button>
-          </Link>
+          canWrite ? (
+            <Link href="/businesses/new">
+              <Button type="button">{t("businesses.add")}</Button>
+            </Link>
+          ) : undefined
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -150,9 +168,11 @@ export default function BusinessesPage() {
               : t("businesses.empty_subtitle")
           }
           action={
-            <Link href="/businesses/new">
-              <Button type="button">{t("businesses.add")}</Button>
-            </Link>
+            canWrite ? (
+              <Link href="/businesses/new">
+                <Button type="button">{t("businesses.add")}</Button>
+              </Link>
+            ) : undefined
           }
         />
       ) : (
@@ -165,8 +185,12 @@ export default function BusinessesPage() {
                 <th>{t("businesses.category")}</th>
                 <th>{t("businesses.owner")}</th>
                 <th>{t("businesses.branches")}</th>
-                <th>{t("businesses.offers")}</th>
-                <th>{t("businesses.scans")}</th>
+                {OFFERS_ENABLED ? (
+                  <>
+                    <th>{t("businesses.offers")}</th>
+                    <th>{t("businesses.scans")}</th>
+                  </>
+                ) : null}
                 <th />
               </tr>
             </thead>
@@ -206,36 +230,45 @@ export default function BusinessesPage() {
                     </button>
                   </td>
                   <td>{biz.branch_count ?? 0}</td>
-                  <td>{biz.offer_count ?? 0}</td>
-                  <td>{compact(biz.scan_count)}</td>
+                  {OFFERS_ENABLED ? (
+                    <>
+                      <td>{biz.offer_count ?? 0}</td>
+                      <td>{compact(biz.scan_count)}</td>
+                    </>
+                  ) : null}
                   <td className="text-right">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {biz.verification_status !== "verified" ? (
-                        <button
-                          type="button"
-                          className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300"
-                          onClick={(e) => void setVerification(biz, "verified", e)}
+                    {canWrite ? (
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {biz.verification_status !== "verified" ? (
+                          <button
+                            type="button"
+                            className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300"
+                            onClick={(e) => void approve(biz, e)}
+                          >
+                            Approve
+                          </button>
+                        ) : null}
+                        {biz.verification_status !== "suspended" ? (
+                          <button
+                            type="button"
+                            className="text-sm font-semibold text-red-600 hover:underline dark:text-red-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSuspendTarget(biz);
+                            }}
+                          >
+                            Suspend
+                          </button>
+                        ) : null}
+                        <Link
+                          href={`/businesses/${biz.id}/edit`}
+                          className="text-sm font-semibold text-deal"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          Approve
-                        </button>
-                      ) : null}
-                      {biz.verification_status !== "suspended" ? (
-                        <button
-                          type="button"
-                          className="text-sm font-semibold text-red-600 hover:underline dark:text-red-300"
-                          onClick={(e) => void setVerification(biz, "suspended", e)}
-                        >
-                          Suspend
-                        </button>
-                      ) : null}
-                      <Link
-                        href={`/businesses/${biz.id}/edit`}
-                        className="text-sm font-semibold text-deal"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {t("common.edit")}
-                      </Link>
-                    </div>
+                          {t("common.edit")}
+                        </Link>
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -252,6 +285,17 @@ export default function BusinessesPage() {
         previousLabel={t("common.previous")}
         nextLabel={t("common.next")}
       />
+      {suspendTarget ? (
+        <ConfirmDialog
+          title="Suspend merchant?"
+          message={`Suspend ${suspendTarget.name}? The store will be hidden from customers until verified again.`}
+          confirmLabel="Suspend"
+          cancelLabel={t("common.cancel")}
+          danger
+          onConfirm={() => void suspendConfirmed()}
+          onCancel={() => setSuspendTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }

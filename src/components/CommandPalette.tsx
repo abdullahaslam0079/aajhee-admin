@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, pageResults } from "@/lib/api";
+import { OFFERS_ENABLED } from "@/lib/flags";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { isAdminOwner } from "@/lib/roles";
+import { useAuth } from "@/lib/useAuth";
 import type { AdminBusiness, AdminOffer, AdminUser, Paginated } from "@/lib/types";
 
 type Hit = { href: string; title: string; subtitle?: string; group: string };
@@ -18,21 +21,24 @@ type ListingHit = {
 const PAGES = [
   { href: "/dashboard", key: "admin.nav_dashboard" },
   { href: "/businesses", key: "admin.nav_businesses" },
-  { href: "/offers", key: "admin.nav_offers" },
+  { href: "/offers", key: "admin.nav_offers", offersOnly: true },
   { href: "/products", key: "admin.nav_listings" },
   { href: "/orders", key: "admin.nav_orders" },
+  { href: "/reports", key: "admin.nav_reports" },
   { href: "/reviews", key: "admin.nav_reviews" },
   { href: "/users", key: "admin.nav_users" },
   { href: "/categories", key: "admin.nav_categories" },
   { href: "/categories/tree", key: "admin.nav_category_tree" },
   { href: "/analytics", key: "admin.nav_analytics" },
+  { href: "/audit", key: "admin.nav_audit", ownerOnly: true },
   { href: "/businesses/new", key: "admin.new_business" },
-  { href: "/offers/new", key: "admin.new_offer" },
+  { href: "/offers/new", key: "admin.new_offer", offersOnly: true },
   { href: "/products/new", key: "admin.new_listing" },
 ] as const;
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n();
+  const { admin } = useAuth();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -46,7 +52,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     let cancelled = false;
     Promise.all([
       api<Paginated<AdminBusiness>>("/api/admin/businesses", { auth: true, query: { search, page_size: 5 } }),
-      api<Paginated<AdminOffer>>("/api/admin/offers", { auth: true, query: { search, page_size: 5 } }),
+      OFFERS_ENABLED
+        ? api<Paginated<AdminOffer>>("/api/admin/offers", { auth: true, query: { search, page_size: 5 } })
+        : Promise.resolve({ results: [] as AdminOffer[] }),
       api<Paginated<ListingHit>>("/api/admin/products", { auth: true, query: { search, page_size: 5 } }),
       api<Paginated<AdminUser>>("/api/admin/users", { auth: true, query: { search, page_size: 5 } }),
     ])
@@ -59,12 +67,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             subtitle: item.category_name || item.email,
             group: t("admin.nav_businesses"),
           })),
-          ...pageResults(offers).map((item) => ({
-            href: `/offers/${item.id}`,
-            title: item.title,
-            subtitle: item.business_name,
-            group: t("admin.nav_offers"),
-          })),
+          ...(OFFERS_ENABLED
+            ? pageResults(offers).map((item) => ({
+                href: `/offers/${item.id}`,
+                title: item.title,
+                subtitle: item.business_name,
+                group: t("admin.nav_offers"),
+              }))
+            : []),
           ...pageResults(listings).map((item) => ({
             href: `/products/${item.id}/edit`,
             title: item.name,
@@ -74,7 +84,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           ...pageResults(users).map((item) => ({
             href: "/users",
             title: [item.first_name, item.last_name].filter(Boolean).join(" ") || item.email,
-            subtitle: item.email,
+            subtitle: item.email_display || (item.email?.endsWith("@phone.aajhee.local") ? item.phone || "" : item.email),
             group: t("admin.nav_users"),
           })),
         ];
@@ -91,6 +101,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const pages = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return PAGES.filter((page) => {
+      if ("offersOnly" in page && page.offersOnly && !OFFERS_ENABLED) return false;
+      if ("ownerOnly" in page && page.ownerOnly && !isAdminOwner(admin)) return false;
       const label = t(page.key);
       return !needle || label.toLowerCase().includes(needle);
     }).map((page) => ({
@@ -98,7 +110,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       title: t(page.key),
       group: t("common.command_pages"),
     }));
-  }, [query, t]);
+  }, [query, t, admin]);
 
   const items = useMemo(() => {
     const remoteItems = q.trim().length < 2 ? [] : remote;

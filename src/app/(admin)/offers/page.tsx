@@ -16,6 +16,7 @@ import {
 } from "@/components/ui";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
+import { OFFERS_ENABLED } from "@/lib/flags";
 import { offerStatus } from "@/lib/format";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
@@ -36,6 +37,19 @@ function statusLabel(status: ReturnType<typeof offerStatus>, t: (key: string) =>
 }
 
 export default function OffersPage() {
+  if (!OFFERS_ENABLED) {
+    return (
+      <Empty
+        title="Offers are disabled"
+        body="Set NEXT_PUBLIC_OFFERS_ENABLED=true to show the offers queue. Code is retained."
+        action={
+          <Link href="/dashboard">
+            <Button type="button">Back to dashboard</Button>
+          </Link>
+        }
+      />
+    );
+  }
   return (
     <Suspense fallback={<Skeleton className="h-64" />}>
       <OffersList />

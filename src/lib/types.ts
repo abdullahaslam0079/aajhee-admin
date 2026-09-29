@@ -5,6 +5,8 @@ export type Paginated<T> = {
   results: T[];
 };
 
+export type AdminRole = "owner" | "support";
+
 export type AdminProfile = {
   id: number;
   email: string;
@@ -12,6 +14,7 @@ export type AdminProfile = {
   last_name?: string;
   is_staff?: boolean;
   is_superuser?: boolean;
+  admin_role?: AdminRole | string | null;
   date_joined?: string;
 };
 
@@ -32,6 +35,14 @@ export type OnlineCoverage = "city" | "country";
 
 export type VerificationStatus = "under_review" | "verified" | "suspended";
 
+export type VerificationChecklist = {
+  phone?: boolean;
+  notification_whatsapp?: boolean;
+  cnic_image?: boolean;
+  shop_photo_or_instagram?: boolean;
+  complete?: boolean;
+};
+
 export type AdminBusiness = {
   id: number;
   name: string;
@@ -42,11 +53,15 @@ export type AdminBusiness = {
   presence_mode?: PresenceMode | string;
   online_coverage?: OnlineCoverage | string;
   verification_status?: VerificationStatus | string;
+  verification_checklist?: VerificationChecklist;
   phone?: string;
   instagram_url?: string;
   cnic_image_url?: string | null;
   shop_photo_url?: string | null;
+  has_cnic_image?: boolean;
+  has_shop_photo?: boolean;
   notification_whatsapp?: string;
+  address_text?: string;
   is_paused?: boolean;
   is_customer_visible?: boolean;
   owner_id?: number;
@@ -183,9 +198,19 @@ export type OrderDeliverySnapshot = {
   customer_city_name?: string;
 };
 
+export type OrderStatusEvent = {
+  id: number;
+  from_status?: string | null;
+  to_status: string;
+  note?: string;
+  actor_email?: string | null;
+  created_at: string;
+};
+
 export type AdminOrder = {
   id: number;
   public_id: string;
+  short_id?: string;
   business_id: number;
   business_name: string;
   branch_id: number;
@@ -216,6 +241,10 @@ export type AdminOrder = {
   delivery_snapshot?: OrderDeliverySnapshot | null;
   payment_proofs: OrderPaymentProof[];
   bank_transfer_instructions?: string;
+  admin_note?: string;
+  admin_notes?: string; // legacy alias — prefer admin_note
+  is_escalated?: boolean;
+  status_history?: OrderStatusEvent[];
 };
 
 export type ProductGalleryImage = {
@@ -343,8 +372,10 @@ export type OfferImportDraft = {
 export type AdminUser = {
   id: number;
   email: string;
+  email_display?: string | null;
   first_name?: string;
   last_name?: string;
+  phone?: string | null;
   account_type?: "consumer" | "business" | string;
   is_active?: boolean;
   is_staff?: boolean;
@@ -353,11 +384,56 @@ export type AdminUser = {
   last_login?: string | null;
   business_id?: number | null;
   business_name?: string | null;
+  order_count?: number;
+  last_order_at?: string | null;
+};
+
+export type ReportStatus = "open" | "in_progress" | "resolved";
+
+export type ReportNote = {
+  id: number;
+  body: string;
+  author_name?: string;
+  author_email?: string;
+  created_at: string;
+};
+
+export type AdminOrderProblemReport = {
+  id: number;
+  status: ReportStatus | string;
+  reason?: string;
+  message?: string;
+  resolution_note?: string;
+  created_at: string;
+  resolved_at?: string | null;
+  order_public_id: string;
+  order_id?: number;
+  business_id?: number;
+  business_name?: string;
+  business_phone?: string | null;
+  customer_id?: number;
+  customer_name?: string;
+  customer_phone?: string | null;
+  customer_email?: string | null;
+  notes?: ReportNote[];
+  order?: AdminOrder | null;
+};
+
+export type AuditLogEntry = {
+  id: number;
+  action: string;
+  object_type: string;
+  object_id: string;
+  metadata?: Record<string, unknown>;
+  actor_email?: string | null;
+  actor_name?: string | null;
+  created_at: string;
 };
 
 export type AnalyticsCounts = {
   consumers?: number;
   businesses?: number;
+  businesses_under_review?: number;
   branches?: number;
   offers_total?: number;
   offers_active?: number;
@@ -376,6 +452,14 @@ export type AnalyticsCounts = {
   pending_payment_proofs?: number;
   low_stock_products?: number;
   order_volume?: string | number;
+  open_reports?: number;
+  cancellation_rate?: number | string;
+  avg_accept_seconds?: number | null;
+  avg_deliver_seconds?: number | null;
+  new_customers?: number;
+  new_merchants?: number;
+  orders_per_day?: number | string;
+  sales?: string | number;
 };
 
 export type TopBusiness = {
@@ -383,20 +467,34 @@ export type TopBusiness = {
   name: string;
   scan_count?: number;
   redemption_count?: number;
+  sales?: string | number;
+  order_count?: number;
+};
+
+export type TopProduct = {
+  id: number;
+  name: string;
+  business_name?: string;
+  quantity_sold?: number;
+  sales?: string | number;
 };
 
 export type AnalyticsOverview = {
   counts: AnalyticsCounts;
   top_businesses?: TopBusiness[];
+  top_merchants_by_sales?: TopBusiness[];
+  top_products?: TopProduct[];
   recent_businesses?: AdminBusiness[];
   recent_offers?: AdminOffer[];
 };
 
 export type TimeseriesPoint = {
   date: string;
-  scans: number;
-  redemptions: number;
+  scans?: number;
+  redemptions?: number;
   views?: number;
+  orders?: number;
+  sales?: number | string;
 };
 
 export type AnalyticsTimeseries = {

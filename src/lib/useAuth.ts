@@ -3,9 +3,32 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
 import { clearSession, getAccessToken, getAdmin, getRefreshToken, isLoggedIn, isRememberedSession, setSession, subscribeAuth } from "./auth";
-import type { AdminProfile } from "./types";
+import type { AdminProfile, AdminRole } from "./types";
 
 export type AuthStatus = "unknown" | "authenticated" | "unauthenticated";
+
+export function resolveAdminRole(admin?: AdminProfile | null): AdminRole {
+  if (!admin) return "support";
+  if (admin.is_superuser) return "owner";
+  if (admin.admin_role === "support") return "support";
+  return "owner";
+}
+
+export function isOwner(admin?: AdminProfile | null) {
+  return resolveAdminRole(admin) === "owner";
+}
+
+/** Support can write orders + reports; Owner can write everything. */
+export function canWrite(
+  admin: AdminProfile | null | undefined,
+  area: "orders" | "reports" | "businesses" | "users" | "products" | "categories" | "offers" | "audit",
+) {
+  if (!admin) return false;
+  if (isOwner(admin)) return true;
+  return area === "orders" || area === "reports";
+}
+
+export { canWriteAdmin, isAdminOwner } from "./roles";
 
 export function useAuth() {
   const loggedIn = useSyncExternalStore(subscribeAuth, isLoggedIn, () => false);
@@ -25,7 +48,8 @@ export function useAuth() {
           current.id === data.id &&
           current.email === data.email &&
           current.first_name === data.first_name &&
-          current.last_name === data.last_name
+          current.last_name === data.last_name &&
+          current.admin_role === data.admin_role
         ) {
           return;
         }

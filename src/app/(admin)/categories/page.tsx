@@ -7,7 +7,9 @@ import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { canWriteAdmin } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
+import { useAuth } from "@/lib/useAuth";
 import type { Category, Paginated } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -15,6 +17,8 @@ const PAGE_SIZE = 20;
 export default function CategoriesPage() {
   const { t } = useI18n();
   const toast = useToast();
+  const { admin } = useAuth();
+  const canWrite = canWriteAdmin(admin, "other");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paginated<Category> | null>(null);
@@ -86,15 +90,17 @@ export default function CategoriesPage() {
                 {t("admin.nav_category_tree")}
               </Button>
             </Link>
-            <Button
-              type="button"
-              onClick={() => {
-                setEditing("new");
-                setName("");
-              }}
-            >
-              {t("categories.add")}
-            </Button>
+            {canWrite ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setEditing("new");
+                  setName("");
+                }}
+              >
+                {t("categories.add")}
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -121,19 +127,33 @@ export default function CategoriesPage() {
                 <p className="text-xs text-muted">{t("categories.business_count", { count: cat.business_count ?? 0 })}</p>
               </div>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditing(cat);
-                    setName(cat.name);
-                  }}
-                >
-                  {t("common.edit")}
-                </Button>
-                <Button type="button" variant="danger" onClick={() => setDeleting(cat)}>
-                  {t("common.delete")}
-                </Button>
+                {canWrite ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditing(cat);
+                        setName(cat.name);
+                      }}
+                    >
+                      {t("common.edit")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={(cat.business_count ?? 0) > 0}
+                      title={
+                        (cat.business_count ?? 0) > 0
+                          ? "Cannot delete a category that has businesses"
+                          : undefined
+                      }
+                      onClick={() => setDeleting(cat)}
+                    >
+                      {t("common.delete")}
+                    </Button>
+                  </>
+                ) : null}
               </div>
             </div>
           ))}

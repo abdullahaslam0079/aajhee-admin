@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  ClipboardList,
+  FileWarning,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -21,24 +23,27 @@ import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { api } from "@/lib/api";
 import { clearSession, getAccessToken, getRefreshToken } from "@/lib/auth";
+import { OFFERS_ENABLED } from "@/lib/flags";
 import { displayName, tokenExpiryMs } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { useToast } from "@/lib/toast";
-import { useAuth } from "@/lib/useAuth";
+import { canWrite, isOwner, useAuth } from "@/lib/useAuth";
 import { ensureFreshAccess } from "@/lib/api";
 import { Button } from "./ui";
 
 const NAV = [
   { href: "/dashboard", key: "admin.nav_dashboard", icon: LayoutDashboard },
   { href: "/businesses", key: "admin.nav_businesses", icon: Store },
-  { href: "/offers", key: "admin.nav_offers", icon: Percent },
+  { href: "/offers", key: "admin.nav_offers", icon: Percent, offersOnly: true },
   { href: "/products", key: "admin.nav_listings", icon: Package },
   { href: "/orders", key: "admin.nav_orders", icon: Receipt },
+  { href: "/reports", key: "admin.nav_reports", icon: FileWarning },
   { href: "/reviews", key: "admin.nav_reviews", icon: Star },
   { href: "/users", key: "admin.nav_users", icon: Users },
   { href: "/categories", key: "admin.nav_categories", icon: Tag },
   { href: "/analytics", key: "admin.nav_analytics", icon: BarChart3 },
+  { href: "/audit", key: "admin.nav_audit", icon: ClipboardList, ownerOnly: true },
 ] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -51,7 +56,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
+  const [openReports, setOpenReports] = useState<number | null>(null);
   const warned = useRef(false);
+  const owner = isOwner(admin);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -90,6 +97,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [t, toast]);
 
+  useEffect(() => {
+    let cancelled = false;
+    api<{ open_count?: number; count?: number }>("/api/admin/reports", {
+      auth: true,
+      query: { status: "open", page_size: 1 },
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setOpenReports(data.open_count ?? data.count ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) setOpenReports(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
   async function logout() {
     try {
       await api("/api/admin/auth/logout", {
@@ -104,11 +129,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
     router.replace("/login");
   }
 
+  const navItems = NAV.filter((item) => {
+    if ("offersOnly" in item && item.offersOnly && !OFFERS_ENABLED) return false;
+    if ("ownerOnly" in item && item.ownerOnly && !owner) return false;
+    return true;
+  });
+
   const nav = (
     <nav className="grid gap-1 px-3">
-      {NAV.map((item) => {
+      {navItems.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
+        const badge = item.href === "/reports" && openReports != null && openReports > 0 ? openReports : null;
         return (
           <Link
             key={item.href}
@@ -122,6 +154,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           >
             <Icon size={18} />
             <span className="flex-1">{t(item.key)}</span>
+            {badge != null ? (
+              <span className="rounded-md bg-deal px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            ) : null}
           </Link>
         );
       })}
@@ -132,7 +169,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen lg:grid lg:grid-cols-[244px_1fr]">
       <aside className="hidden bg-sidebar text-sidebar-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <div className="flex shrink-0 items-center gap-2.5 px-5 py-5">
-          <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg bg-white object-contain p-0.5" />
+          <img src="/icon.png" alt="Aajhee" className="h-8 w-8 rounded-lg bg-white object-contain p-0.5" />
           <div>
             <p className="text-sm font-semibold tracking-tight">{t("admin.app_name")}</p>
             <p className="text-[11px] text-sidebar-muted">aajhee.com</p>
@@ -142,6 +179,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto shrink-0 border-t border-white/10 p-4">
           <p className="truncate text-sm font-medium">{displayName(admin)}</p>
           <p className="truncate text-xs text-sidebar-muted">{admin?.email}</p>
+          {admin ? (
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-sidebar-muted">
+              {isOwner(admin) ? "Owner" : "Support"}
+              {!canWrite(admin, "businesses") ? " · read-only" : ""}
+            </p>
+          ) : null}
           {minutesLeft != null ? (
             <p className={`mt-2 text-[11px] font-semibold ${minutesLeft <= 10 ? "text-amber-300" : "text-sidebar-muted"}`}>
               {t("admin.session_left", { minutes: minutesLeft })}

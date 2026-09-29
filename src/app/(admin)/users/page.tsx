@@ -1,13 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Empty, ErrorBox, Field, Modal, PageHeader, Pagination, Skeleton, Toggle, inputClass } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  Empty,
+  ErrorBox,
+  Field,
+  Modal,
+  PageHeader,
+  Pagination,
+  Skeleton,
+  Toggle,
+  inputClass,
+} from "@/components/ui";
 import { api, pageResults } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { dateLabel, userLabel } from "@/lib/format";
 import { useDebounced } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
+import { canWriteAdmin } from "@/lib/roles";
 import { useToast } from "@/lib/toast";
+import { useAuth } from "@/lib/useAuth";
 import type { AdminUser, Paginated } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -15,6 +30,8 @@ const PAGE_SIZE = 20;
 export default function UsersPage() {
   const { t, locale } = useI18n();
   const toast = useToast();
+  const { admin } = useAuth();
+  const canWrite = canWriteAdmin(admin, "other");
   const [search, setSearch] = useState("");
   const [accountType, setAccountType] = useState("");
   const [active, setActive] = useState("");
@@ -26,6 +43,7 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
   const q = useDebounced(search);
 
   const load = useCallback(() => {
@@ -50,6 +68,10 @@ export default function UsersPage() {
   }, [load]);
 
   async function toggleActive(user: AdminUser, is_active: boolean) {
+    if (!is_active) {
+      setDeactivateTarget(user);
+      return;
+    }
     try {
       await api(`/api/admin/users/${user.id}`, {
         method: "PATCH",
@@ -57,6 +79,22 @@ export default function UsersPage() {
         body: JSON.stringify({ is_active }),
       });
       toast.push(t("users.updated"));
+      load();
+    } catch (err) {
+      toast.push(errorMessage(err, t("users.update_error")), "error");
+    }
+  }
+
+  async function confirmDeactivate() {
+    if (!deactivateTarget) return;
+    try {
+      await api(`/api/admin/users/${deactivateTarget.id}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ is_active: false }),
+      });
+      toast.push(t("users.updated"));
+      setDeactivateTarget(null);
       load();
     } catch (err) {
       toast.push(errorMessage(err, t("users.update_error")), "error");
@@ -144,46 +182,70 @@ export default function UsersPage() {
         <Empty title={t("users.empty_title")} />
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-3 font-semibold">{t("users.first_name")}</th>
+                <th className="px-4 py-3 font-semibold">{t("users.phone")}</th>
                 <th className="px-4 py-3 font-semibold">{t("auth.email")}</th>
                 <th className="px-4 py-3 font-semibold">{t("users.account_type")}</th>
+                <th className="px-4 py-3 font-semibold">{t("users.order_count")}</th>
+                <th className="px-4 py-3 font-semibold">{t("users.last_order")}</th>
                 <th className="px-4 py-3 font-semibold">{t("users.joined")}</th>
                 <th className="px-4 py-3 font-semibold">{t("users.active")}</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((user) => (
-                <tr key={user.id} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      className="font-medium hover:text-deal"
-                      onClick={() => {
-                        setEditing(user);
-                        setFirstName(user.first_name || "");
-                        setLastName(user.last_name || "");
-                      }}
-                    >
-                      {userLabel(user)}
-                    </button>
-                    {user.business_name ? <p className="text-xs text-muted">{user.business_name}</p> : null}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Badge>{user.account_type === "business" ? t("users.business") : t("users.consumer")}</Badge>
-                      {user.is_staff ? <Badge tone="deal">{t("users.staff")}</Badge> : null}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted">{dateLabel(user.date_joined, locale)}</td>
-                  <td className="px-4 py-3">
-                    <Toggle checked={user.is_active !== false} onChange={(value) => toggleActive(user, value)} />
-                  </td>
-                </tr>
-              ))}
+              {items.map((user) => {
+                const email =
+                  user.email_display ??
+                  (user.email?.endsWith("@phone.aajhee.local") ? null : user.email);
+                return (
+                  <tr key={user.id} className="border-b border-line last:border-0">
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="font-medium hover:text-deal"
+                        disabled={!canWrite}
+                        onClick={() => {
+                          if (!canWrite) return;
+                          setEditing(user);
+                          setFirstName(user.first_name || "");
+                          setLastName(user.last_name || "");
+                        }}
+                      >
+                        {userLabel(user)}
+                      </button>
+                      {user.business_name ? <p className="text-xs text-muted">{user.business_name}</p> : null}
+                    </td>
+                    <td className="px-4 py-3 text-muted">{user.phone || "—"}</td>
+                    <td className="px-4 py-3 text-muted">{email || "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        <Badge>{user.account_type === "business" ? t("users.business") : t("users.consumer")}</Badge>
+                        {user.is_staff ? <Badge tone="deal">{t("users.staff")}</Badge> : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{user.order_count ?? 0}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {user.last_order_at ? dateLabel(user.last_order_at, locale) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted">{dateLabel(user.date_joined, locale)}</td>
+                    <td className="px-4 py-3">
+                      {canWrite ? (
+                        <Toggle
+                          checked={user.is_active !== false}
+                          onChange={(value) => toggleActive(user, value)}
+                        />
+                      ) : (
+                        <Badge tone={user.is_active === false ? "danger" : "success"}>
+                          {user.is_active === false ? t("users.inactive") : t("users.active")}
+                        </Badge>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -216,6 +278,17 @@ export default function UsersPage() {
             </div>
           </div>
         </Modal>
+      ) : null}
+      {deactivateTarget ? (
+        <ConfirmDialog
+          title={t("users.deactivate_title")}
+          message={t("users.deactivate_message", { name: userLabel(deactivateTarget) })}
+          confirmLabel={t("users.deactivate")}
+          cancelLabel={t("common.cancel")}
+          danger
+          onCancel={() => setDeactivateTarget(null)}
+          onConfirm={() => void confirmDeactivate()}
+        />
       ) : null}
     </div>
   );

@@ -27,6 +27,7 @@ import {
 } from "@/lib/commerce";
 import { errorMessage } from "@/lib/errors";
 import { rs } from "@/lib/format";
+import { formatOrderNumber } from "@/lib/orderNumber";
 import { useToast } from "@/lib/toast";
 import type { AdminOrder, OrderStatus, PaymentProofReviewStatus } from "@/lib/types";
 
@@ -38,11 +39,15 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
   const [busy, setBusy] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [reviewNote, setReviewNote] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [escalated, setEscalated] = useState(false);
 
   const load = useCallback(() => {
     api<AdminOrder>(`/api/admin/orders/${publicId}`, { auth: true })
       .then((data) => {
         setOrder(data);
+        setAdminNotes(data.admin_note || "");
+        setEscalated(Boolean(data.is_escalated));
         setError("");
       })
       .catch((err) => setError(errorMessage(err, "Could not load order")));
@@ -69,6 +74,24 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
       toast.push(`Order → ${labelStatus(status)}`);
     } catch (err) {
       setError(errorMessage(err, "Could not update order status"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveAdminMeta() {
+    setBusy(true);
+    try {
+      const updated = await api<AdminOrder>(`/api/admin/orders/${publicId}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ admin_note: adminNotes, is_escalated: escalated }),
+      });
+      setOrder(updated);
+      setAdminNotes(updated.admin_note || "");
+      toast.push("Order notes saved");
+    } catch (err) {
+      setError(errorMessage(err, "Could not save admin notes"));
     } finally {
       setBusy(false);
     }
@@ -120,7 +143,7 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
     <div>
       <BackLink href="/orders" label="All orders" />
       <PageHeader
-        title={`Order #${order.public_id.slice(0, 8)}`}
+        title={formatOrderNumber(order.public_id) || `Order`}
         subtitle={`${formatDateTime(order.placed_at)} · ${order.business_name} · ${order.branch_name}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -240,12 +263,36 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
                 {isDelivery ? "No delivery address provided." : "Customer picks up at the branch."}
               </p>
             )}
+            {(order.delivery_house_number || order.delivery_landmark) && (
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                {order.delivery_house_number ? (
+                  <p>
+                    <span className="text-muted">House no. · </span>
+                    {order.delivery_house_number}
+                  </p>
+                ) : null}
+                {order.delivery_landmark ? (
+                  <p>
+                    <span className="text-muted">Landmark · </span>
+                    {order.delivery_landmark}
+                  </p>
+                ) : null}
+              </div>
+            )}
+            <p className="text-sm">
+              <span className="text-muted">Payment · </span>
+              {labelPayment(order.payment_method)}
+              {order.payment_status ? ` · ${order.payment_status}` : ""}
+            </p>
             {order.delivery_snapshot?.promised_by ? (
               <p className="text-sm text-muted">
-                Promised by {formatDateTime(order.delivery_snapshot.promised_by)}
-                {order.delivery_snapshot.max_delivery_hours
-                  ? ` (${order.delivery_snapshot.max_delivery_hours}h window)`
-                  : ""}
+                {order.fulfillment_type === "local_same_day"
+                  ? `Promised by end of day · ${formatDateTime(order.delivery_snapshot.promised_by)}`
+                  : `Promised by ${formatDateTime(order.delivery_snapshot.promised_by)}${
+                      order.delivery_snapshot.max_delivery_hours
+                        ? ` (${order.delivery_snapshot.max_delivery_hours}h window)`
+                        : ""
+                    }`}
               </p>
             ) : null}
             {order.customer_notes ? (
@@ -367,6 +414,53 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
               )}
             </section>
           ) : null}
+
+          <section className="card space-y-3 p-5">
+            <h2 className="font-semibold">Admin</h2>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={escalated}
+                onChange={(e) => setEscalated(e.target.checked)}
+              />
+              Escalate
+            </label>
+            <Field label="Admin note">
+              <textarea
+                className={`${inputClass} min-h-24`}
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Internal note for support…"
+              />
+            </Field>
+            <Button type="button" disabled={busy} onClick={() => void saveAdminMeta()}>
+              Save admin note
+            </Button>
+          </section>
+
+          <section className="card space-y-3 p-5">
+            <h2 className="font-semibold">Status history</h2>
+            {(order.status_history ?? []).length === 0 ? (
+              <p className="text-sm text-muted">No status changes recorded yet.</p>
+            ) : (
+              <ol className="space-y-3 border-l border-line pl-4">
+                {(order.status_history ?? []).map((ev) => (
+                  <li key={ev.id} className="relative text-sm">
+                    <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-deal" />
+                    <p className="font-semibold">
+                      {ev.from_status ? `${ev.from_status} → ` : ""}
+                      {ev.to_status}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {formatDateTime(ev.created_at)}
+                      {ev.actor_email ? ` · ${ev.actor_email}` : ""}
+                    </p>
+                    {ev.note ? <p className="mt-1 text-muted">{ev.note}</p> : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
         </div>
       </div>
     </div>
