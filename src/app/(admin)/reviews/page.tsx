@@ -96,10 +96,10 @@ function ReviewsList() {
         method: "POST",
         auth: true,
       });
-      toast.success(t("reviews.action_ok"));
+      toast.push(t("reviews.action_ok"), "success");
       load();
     } catch (err) {
-      toast.error(errorMessage(err));
+      toast.push(errorMessage(err), "error");
     } finally {
       setBusyId(null);
     }
