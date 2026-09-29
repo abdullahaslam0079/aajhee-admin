@@ -129,7 +129,9 @@
     "business_stats": "{scans} scans · {redemptions} redemptions",
     "recent": "Latest on the platform",
     "activity": "Last 14 days",
-    "create_first": "Create something"
+    "create_first": "Create something",
+    "reviews_open": "Open",
+    "reviews_hint": "Moderate product ratings from customers"
   },
   "businesses": {
     "title": "Businesses",

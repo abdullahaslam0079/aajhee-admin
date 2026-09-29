@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       <div className="mt-6">
         <h2 className="mb-3 text-lg font-semibold">{t("analytics.ops_title")}</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard
             href="/orders?status=pending"
             label={t("analytics.ops_pending_orders")}
@@ -115,6 +115,12 @@ export default function DashboardPage() {
             href="/offers?review_status=pending"
             label={t("offers.filter_review")}
             value={compact(counts.offers_pending)}
+          />
+          <StatCard
+            href="/reviews"
+            label={t("admin.nav_reviews")}
+            value={t("dashboard.reviews_open")}
+            hint={t("dashboard.reviews_hint")}
           />
         </div>
       </div>

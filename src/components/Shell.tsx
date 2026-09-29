@@ -131,15 +131,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[244px_1fr]">
       <aside className="hidden bg-sidebar text-sidebar-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
-        <div className="flex items-center gap-2.5 px-5 py-5">
+        <div className="flex shrink-0 items-center gap-2.5 px-5 py-5">
           <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg bg-white object-contain p-0.5" />
           <div>
             <p className="text-sm font-semibold tracking-tight">{t("admin.app_name")}</p>
             <p className="text-[11px] text-sidebar-muted">aajhee.com</p>
           </div>
         </div>
-        {nav}
-        <div className="mt-auto border-t border-white/10 p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto pb-2">{nav}</div>
+        <div className="mt-auto shrink-0 border-t border-white/10 p-4">
           <p className="truncate text-sm font-medium">{displayName(admin)}</p>
           <p className="truncate text-xs text-sidebar-muted">{admin?.email}</p>
           {minutesLeft != null ? (
@@ -161,13 +161,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {open ? (
         <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)}>
           <aside className="flex h-full w-64 flex-col bg-sidebar text-sidebar-ink" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex shrink-0 items-center justify-between px-4 py-4">
               <span className="font-semibold">{t("admin.app_name")}</span>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close">
                 <X size={20} />
               </button>
             </div>
-            {nav}
+            <div className="min-h-0 flex-1 overflow-y-auto pb-4">{nav}</div>
           </aside>
         </div>
       ) : null}

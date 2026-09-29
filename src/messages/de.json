@@ -129,7 +129,9 @@
     "business_stats": "{scans} Scans · {redemptions} Einlösungen",
     "recent": "Aktuelles auf der Plattform",
     "activity": "Letzte 14 Tage",
-    "create_first": "Etwas anlegen"
+    "create_first": "Etwas anlegen",
+    "reviews_open": "Öffnen",
+    "reviews_hint": "Kundenbewertungen von Produkten moderieren"
   },
   "businesses": {
     "title": "Unternehmen",
