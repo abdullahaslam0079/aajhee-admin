@@ -7,6 +7,5 @@ export async function register() {
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || "production",
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || "0.1"),
-    sendDefaultPii: false,
   });
 }
