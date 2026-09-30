@@ -79,6 +79,9 @@ function OrdersList() {
   }
 
   const load = useCallback(() => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
     api<Paginated<AdminOrder> | AdminOrder[]>("/api/admin/orders", {
       auth: true,
       query: {
@@ -106,12 +109,17 @@ function OrdersList() {
 
   useEffect(() => {
     load();
-    const id = window.setInterval(load, 30000);
+    const id = window.setInterval(load, 15000);
     const onFocus = () => load();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(id);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [load]);
 

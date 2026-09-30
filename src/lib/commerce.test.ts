@@ -22,6 +22,7 @@ describe("commerce helpers", () => {
   it("maps fulfillment and payment", () => {
     assert.equal(labelFulfillment("pickup"), "Pickup");
     assert.equal(labelPayment("bank_transfer"), "Bank transfer");
+    assert.equal(labelPayment("jazzcash"), "JazzCash / Easypaisa");
   });
 
   it("returns status tones", () => {

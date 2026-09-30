@@ -63,8 +63,19 @@ export const PAYMENT_LABELS: Record<string, string> = {
   cash_on_delivery: "Cash on delivery",
   bank_transfer: "Bank transfer",
   stripe: "Card",
-  jazzcash: "JazzCash",
+  jazzcash: "JazzCash / Easypaisa",
 };
+
+/** Methods where the customer uploads a transaction screenshot (mirrors backend). */
+export const PAYMENT_PROOF_METHODS = new Set<string>([
+  "bank_transfer",
+  "stripe",
+  "jazzcash",
+]);
+
+export function requiresPaymentProof(method?: string | null): boolean {
+  return Boolean(method && PAYMENT_PROOF_METHODS.has(method));
+}
 
 export function statusTone(
   status: string,
@@ -144,7 +155,7 @@ export function nextActions(order: {
   }
 
   if (order.status === "accepted") {
-    if (order.payment_method === "bank_transfer") {
+    if (requiresPaymentProof(order.payment_method)) {
       actions = actions.filter((s) => s !== "preparing");
     } else {
       actions = actions.filter((s) => s !== "awaiting_payment");

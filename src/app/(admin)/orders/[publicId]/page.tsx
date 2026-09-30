@@ -22,6 +22,7 @@ import {
   labelPayment,
   labelStatus,
   nextActions,
+  requiresPaymentProof,
   statusTone,
   whatsappHref,
 } from "@/lib/commerce";
@@ -43,6 +44,9 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
   const [escalated, setEscalated] = useState(false);
 
   const load = useCallback(() => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
     api<AdminOrder>(`/api/admin/orders/${publicId}`, { auth: true })
       .then((data) => {
         setOrder(data);
@@ -55,6 +59,18 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
 
   useEffect(() => {
     load();
+    const id = window.setInterval(load, 8000);
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   async function setStatus(status: OrderStatus) {
@@ -137,7 +153,9 @@ export default function AdminOrderDetailPage({ params }: PageProps<"/orders/[pub
 
   const actions = nextActions(order);
   const isDelivery = isDeliveryFulfillment(order.fulfillment_type);
-  const showProofs = order.payment_method === "bank_transfer" || (order.payment_proofs?.length ?? 0) > 0;
+  const showProofs =
+    requiresPaymentProof(order.payment_method) ||
+    (order.payment_proofs?.length ?? 0) > 0;
 
   return (
     <div>

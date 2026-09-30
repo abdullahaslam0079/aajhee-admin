@@ -22,6 +22,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { api } from "@/lib/api";
+import { useAdminActionCounts } from "@/lib/adminPoll";
 import { clearSession, getAccessToken, getRefreshToken } from "@/lib/auth";
 import { OFFERS_ENABLED } from "@/lib/flags";
 import { displayName, tokenExpiryMs } from "@/lib/format";
@@ -56,9 +57,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
-  const [openReports, setOpenReports] = useState<number | null>(null);
   const warned = useRef(false);
   const owner = isOwner(admin);
+  const { counts } = useAdminActionCounts(Boolean(admin));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -97,24 +98,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [t, toast]);
 
-  useEffect(() => {
-    let cancelled = false;
-    api<{ open_count?: number; count?: number }>("/api/admin/reports", {
-      auth: true,
-      query: { status: "open", page_size: 1 },
-    })
-      .then((data) => {
-        if (cancelled) return;
-        setOpenReports(data.open_count ?? data.count ?? 0);
-      })
-      .catch(() => {
-        if (!cancelled) setOpenReports(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
-
   async function logout() {
     try {
       await api("/api/admin/auth/logout", {
@@ -140,7 +123,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {navItems.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
-        const badge = item.href === "/reports" && openReports != null && openReports > 0 ? openReports : null;
+        const badge =
+          item.href === "/orders" && counts.ordersBadge > 0
+            ? counts.ordersBadge
+            : item.href === "/reports" && counts.openReports > 0
+              ? counts.openReports
+              : null;
         return (
           <Link
             key={item.href}
