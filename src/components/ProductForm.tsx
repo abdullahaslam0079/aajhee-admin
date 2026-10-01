@@ -6,7 +6,8 @@ import { api, pageResults } from "@/lib/api";
 import { compressImageFiles } from "@/lib/compressImage";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
-import type { AdminBranch, AdminBusiness, Category, ProductGalleryImage } from "@/lib/types";
+import type { AdminBranch, AdminBusiness, CategoryTreeNode, ProductGalleryImage } from "@/lib/types";
+import { CategoryTreeSelect } from "./CategoryTreeSelect";
 import { Badge, Button, Cover, ErrorBox, Field, inputClass } from "./ui";
 
 export const LOW_STOCK_THRESHOLD = 5;
@@ -47,7 +48,7 @@ export function ProductForm({
   const router = useRouter();
   const editing = Boolean(product);
   const [businesses, setBusinesses] = useState<AdminBusiness[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [branches, setBranches] = useState<AdminBranch[]>([]);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,11 +82,8 @@ export function ProductForm({
     })
       .then((data) => setBusinesses(pageResults(data)))
       .catch(() => undefined);
-    api<{ results?: Category[] } | Category[]>("/api/admin/categories", {
-      auth: true,
-      query: { page_size: 200 },
-    })
-      .then((data) => setCategories(pageResults(data)))
+    api<CategoryTreeNode[]>("/api/admin/categories/tree", { auth: true })
+      .then(setCategories)
       .catch(() => undefined);
   }, []);
 
@@ -235,19 +233,14 @@ export function ProductForm({
         />
       </Field>
       <Field label="Category" error={errors.category_id}>
-        <select
-          className={inputClass}
+        <CategoryTreeSelect
+          tree={categories}
           value={form.category_id}
-          onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+          preferLeaves
           required
-        >
-          <option value="">Select category</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+          placeholder="Select category"
+          onChange={(value) => setForm({ ...form, category_id: value })}
+        />
       </Field>
       <Field label="Short description" error={errors.description}>
         <textarea

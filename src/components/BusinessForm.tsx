@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, pageResults } from "@/lib/api";
+import { api } from "@/lib/api";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/lib/toast";
-import type { AdminBusiness, Category, OnlineCoverage, PresenceMode } from "@/lib/types";
+import type { AdminBusiness, CategoryTreeNode, OnlineCoverage, PresenceMode } from "@/lib/types";
+import { CategoryTreeSelect } from "./CategoryTreeSelect";
 import { Button, Cover, ErrorBox, Field, inputClass } from "./ui";
 
 const PRESENCE_OPTIONS: Array<{ value: PresenceMode; label: string; hint: string }> = [
@@ -32,7 +33,7 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
   const toast = useToast();
   const router = useRouter();
   const editing = Boolean(business);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -41,6 +42,9 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
   const [form, setForm] = useState({
     name: business?.name || "",
     category_id: String(business?.category_id || ""),
+    category_ids: (business?.category_ids || (business?.category_id ? [business.category_id] : [])).map(
+      String
+    ),
     email: business?.email || "",
     password: "",
     password_confirm: "",
@@ -55,11 +59,8 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
   });
 
   useEffect(() => {
-    api<{ results?: Category[] } | Category[]>("/api/admin/categories", {
-      auth: true,
-      query: { page_size: 100 },
-    })
-      .then((data) => setCategories(pageResults(data)))
+    api<CategoryTreeNode[]>("/api/admin/categories/tree", { auth: true })
+      .then(setCategories)
       .catch((err) => setError(errorMessage(err, t("businesses.category_load_error"))));
   }, [t]);
 
@@ -78,6 +79,11 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
       const data = new FormData();
       data.set("name", form.name);
       data.set("category_id", form.category_id);
+      const secondary = form.category_ids.filter((id) => id && id !== form.category_id);
+      const allIds = form.category_id
+        ? [form.category_id, ...secondary].slice(0, 4)
+        : secondary.slice(0, 4);
+      allIds.forEach((id) => data.append("category_ids", id));
       data.set("presence_mode", form.presence_mode);
       data.set("online_coverage", form.online_coverage);
       data.set("phone", form.phone);
@@ -141,14 +147,59 @@ export function BusinessForm({ business }: { business?: AdminBusiness }) {
         <input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoComplete="off" />
       </Field>
       <Field label={t("businesses.category")} error={errors.category_id}>
-        <select className={inputClass} value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
-          <option value="">{t("auth.category_required")}</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+        <CategoryTreeSelect
+          tree={categories}
+          value={form.category_id}
+          rootsOnly
+          required
+          placeholder={t("auth.category_required")}
+          onChange={(value) => {
+            const nextIds = form.category_ids.filter((id) => id !== form.category_id);
+            if (value && !nextIds.includes(value)) nextIds.unshift(value);
+            setForm({
+              ...form,
+              category_id: value,
+              category_ids: value ? [value, ...nextIds.filter((id) => id !== value)].slice(0, 4) : nextIds,
+            });
+          }}
+        />
+      </Field>
+      <Field
+        label={t("businesses.secondary_categories")}
+        error={errors.category_ids}
+        hint={t("businesses.secondary_categories_hint")}
+      >
+        <div className="space-y-2 rounded-xl border border-line p-3">
+          {categories.map((cat) => {
+            const checked = form.category_ids.includes(String(cat.id));
+            const isPrimary = String(cat.id) === form.category_id;
+            return (
+              <label key={cat.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={isPrimary}
+                  onChange={(e) => {
+                    const id = String(cat.id);
+                    let next = form.category_ids.filter((x) => x !== id);
+                    if (e.target.checked) {
+                      if (next.length >= 4) return;
+                      next = [...next, id];
+                    }
+                    if (form.category_id && !next.includes(form.category_id)) {
+                      next = [form.category_id, ...next];
+                    }
+                    setForm({ ...form, category_ids: next.slice(0, 4) });
+                  }}
+                />
+                <span>
+                  {cat.name}
+                  {isPrimary ? " (primary)" : ""}
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </Field>
 
       <Field label="Phone" error={errors.phone}>

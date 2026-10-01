@@ -42,7 +42,7 @@ const NAV = [
   { href: "/reports", key: "admin.nav_reports", icon: FileWarning },
   { href: "/reviews", key: "admin.nav_reviews", icon: Star },
   { href: "/users", key: "admin.nav_users", icon: Users },
-  { href: "/categories", key: "admin.nav_categories", icon: Tag },
+  { href: "/categories/tree", key: "admin.nav_categories", icon: Tag },
   { href: "/analytics", key: "admin.nav_analytics", icon: BarChart3 },
   { href: "/audit", key: "admin.nav_audit", icon: ClipboardList, ownerOnly: true },
 ] as const;

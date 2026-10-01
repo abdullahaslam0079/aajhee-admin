@@ -27,7 +27,16 @@ export type AdminAuthPayload = {
 export type Category = {
   id: number;
   name: string;
+  slug?: string;
+  parent_id?: number | null;
+  sort_order?: number;
+  is_active?: boolean;
   business_count?: number;
+  product_count?: number;
+};
+
+export type CategoryTreeNode = Category & {
+  children?: CategoryTreeNode[];
 };
 
 export type PresenceMode = "online_only" | "instore_only" | "hybrid";
@@ -49,6 +58,7 @@ export type AdminBusiness = {
   email?: string;
   logo_url?: string | null;
   category_id?: number;
+  category_ids?: number[];
   category_name?: string;
   presence_mode?: PresenceMode | string;
   online_coverage?: OnlineCoverage | string;
