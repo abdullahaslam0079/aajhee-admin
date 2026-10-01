@@ -481,6 +481,7 @@ export type TopBusiness = {
   order_count?: number;
 };
 
+/** Analytics ranking by sales — not the consumer shop-card product preview. */
 export type TopProduct = {
   id: number;
   name: string;
