@@ -171,6 +171,8 @@ export type ProductReview = {
   product_name: string;
   business_id: number;
   business_name: string;
+  branch_id?: number | null;
+  branch_name?: string | null;
   order_public_id: string;
   order_item_id: number;
   rating: number;

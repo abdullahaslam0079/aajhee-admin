@@ -724,6 +724,7 @@
     "empty": "Keine Bewertungen",
     "empty_hint": "Bewertungen erscheinen, nachdem Kunden gelieferte Bestellungen bewerten.",
     "col_product": "Produkt",
+    "col_branch": "Filiale",
     "col_rating": "Bewertung",
     "col_status": "Status",
     "col_date": "Datum",

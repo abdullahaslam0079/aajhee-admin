@@ -149,6 +149,7 @@ function ReviewsList() {
             <thead className="border-b border-border bg-surface-2 text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-3">{t("reviews.col_product")}</th>
+                <th className="px-4 py-3">{t("reviews.col_branch")}</th>
                 <th className="px-4 py-3">{t("reviews.col_rating")}</th>
                 <th className="px-4 py-3">{t("reviews.col_status")}</th>
                 <th className="px-4 py-3">{t("reviews.col_date")}</th>
@@ -176,6 +177,14 @@ function ReviewsList() {
                       >
                         View order
                       </Link>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-sm font-medium">
+                      {review.branch_name || "—"}
+                    </p>
+                    {review.branch_id ? (
+                      <p className="text-xs text-muted">#{review.branch_id}</p>
                     ) : null}
                   </td>
                   <td className="px-4 py-3">

@@ -732,6 +732,7 @@
     "empty": "No reviews found",
     "empty_hint": "Reviews appear after customers rate delivered orders.",
     "col_product": "Product",
+    "col_branch": "Branch",
     "col_rating": "Rating",
     "col_status": "Status",
     "col_date": "Date",
